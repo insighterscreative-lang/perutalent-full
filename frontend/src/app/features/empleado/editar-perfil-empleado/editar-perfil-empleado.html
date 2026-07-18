@@ -1,0 +1,340 @@
+<div class="page">
+
+  <section class="card">
+
+    <div class="header">
+      <div>
+        <h1>Editar perfil de empleado</h1>
+        <p>Actualiza la información de tu perfil laboral.</p>
+      </div>
+
+      <button type="button" class="btn-secondary" (click)="cancelar()">
+        Cancelar
+      </button>
+    </div>
+
+    <div class="loading" *ngIf="cargando">
+      Cargando información del perfil...
+    </div>
+
+    <form
+      *ngIf="!cargando"
+      (ngSubmit)="guardarCambios()"
+      #perfilForm="ngForm">
+
+      <h2>Información personal</h2>
+
+      <div class="grid">
+
+        <div class="field">
+          <label>Nombre *</label>
+          <input
+            type="text"
+            name="nombre"
+            [(ngModel)]="perfil.nombre"
+            required>
+        </div>
+
+        <div class="field">
+          <label>Apellido *</label>
+          <input
+            type="text"
+            name="apellido"
+            [(ngModel)]="perfil.apellido"
+            required>
+        </div>
+
+        <div class="field">
+            <label>Tipo de documento *</label>
+            <select
+                name="tipoDoc"
+                [(ngModel)]="perfil.tipoDoc"
+                (change)="cambiarTipoDocumento()"
+                required>
+                <option value="">Seleccionar</option>
+                <option *ngFor="let tipo of tiposDocumento" [value]="tipo">
+                {{ tipo }}
+                </option>
+            </select>
+        </div>
+
+        <div class="field">
+        <label>Número de documento *</label>
+            <input
+            type="text"
+            name="numDoc"
+            [(ngModel)]="perfil.numDoc"
+            [maxlength]="obtenerMaxLengthDocumento()"
+            [placeholder]="obtenerPlaceholderDocumento()"
+            required>
+        </div>
+
+        <div class="field">
+        <label>Fecha de nacimiento *</label>
+        <input
+            type="date"
+            name="fechaNacimiento"
+            [(ngModel)]="perfil.fechaNacimiento"
+            [max]="fechaMaximaNacimiento"
+            required>
+        </div>
+
+        <div class="field">
+          <label>Género *</label>
+          <select
+            name="genero"
+            [(ngModel)]="perfil.genero"
+            required>
+            <option value="">Seleccionar</option>
+            <option *ngFor="let genero of generos" [value]="genero">
+              {{ genero }}
+            </option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Teléfono *</label>
+          <input
+            type="text"
+            name="telefono"
+            [(ngModel)]="perfil.telefono"
+            required>
+        </div>
+
+        <div class="field">
+          <label>Nacionalidad *</label>
+          <select
+            name="nacionalidad"
+            [(ngModel)]="perfil.nacionalidad"
+            required>
+            <option value="">Seleccionar</option>
+            <option *ngFor="let nacionalidad of nacionalidades" [value]="nacionalidad">
+              {{ nacionalidad }}
+            </option>
+          </select>
+        </div>
+
+      </div>
+
+      <h2>Ubicación</h2>
+
+      <div class="grid">
+
+        <div class="field">
+          <label>Departamento *</label>
+          <select
+            name="departamento"
+            [(ngModel)]="idDepartamentoSeleccionado"
+            (change)="cambiarDepartamento()"
+            required>
+            <option [ngValue]="0">Seleccionar</option>
+            <option *ngFor="let departamento of departamentos" [ngValue]="departamento.id">
+              {{ departamento.nombre }}
+            </option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Provincia *</label>
+          <select
+            name="provincia"
+            [(ngModel)]="idProvinciaSeleccionada"
+            (change)="cambiarProvincia()"
+            [disabled]="!idDepartamentoSeleccionado"
+            required>
+            <option [ngValue]="0">Seleccionar</option>
+            <option *ngFor="let provincia of provincias" [ngValue]="provincia.id">
+              {{ provincia.nombre }}
+            </option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Distrito *</label>
+          <select
+            name="idDistrito"
+            [(ngModel)]="perfil.idDistrito"
+            [disabled]="!idProvinciaSeleccionada"
+            required>
+            <option [ngValue]="0">Seleccionar</option>
+            <option *ngFor="let distrito of distritos" [ngValue]="distrito.id">
+              {{ distrito.nombre }}
+            </option>
+          </select>
+        </div>
+
+      </div>
+
+      <h2>Información laboral</h2>
+
+      <div class="field">
+        <label>Descripción</label>
+        <textarea
+          name="descripcion"
+          rows="4"
+          [(ngModel)]="perfil.descripcion"
+          placeholder="Cuéntanos sobre tu experiencia, fortalezas o tipo de trabajos que buscas">
+        </textarea>
+      </div>
+
+      <div class="grid">
+
+        <div class="field">
+          <label>URL de curriculum</label>
+          <input
+            type="text"
+            name="curriculum"
+            [(ngModel)]="perfil.curriculum"
+            placeholder="Ejemplo: https://.../cv.pdf">
+        </div>
+
+        <div class="field">
+          <label>URL de foto de perfil</label>
+          <input
+            type="text"
+            name="fotoPerfil"
+            [(ngModel)]="perfil.fotoPerfil"
+            placeholder="Ejemplo: https://.../foto.jpg">
+        </div>
+
+      </div>
+
+      <div class="field">
+        <label>Disponibilidad de equipo</label>
+        <textarea
+          name="disponibilidadEquipo"
+          rows="3"
+          [(ngModel)]="perfil.disponibilidadEquipo"
+          placeholder="Ejemplo: Laptop propia, internet estable, cámara web">
+        </textarea>
+      </div>
+
+      <h2>Idiomas</h2>
+
+      <div class="chips">
+        <button
+          type="button"
+          class="chip"
+          *ngFor="let idioma of idiomasDisponibles"
+          [class.active]="estaSeleccionadoString(perfil.idiomas, idioma)"
+          (click)="cambiarIdioma(idioma)">
+          {{ idioma }}
+        </button>
+      </div>
+
+      <h2>Categorías</h2>
+
+      <div class="field search-field">
+        <label>Buscar categoría</label>
+        <input
+          type="text"
+          name="busquedaCategorias"
+          [(ngModel)]="busquedaCategorias"
+          placeholder="Ejemplo: Desarrollo, marketing, diseño">
+      </div>
+
+      <div class="chips">
+        <button
+          type="button"
+          class="chip"
+          *ngFor="let categoria of categoriasFiltradas()"
+          [class.active]="estaSeleccionadoNumber(perfil.categoriasId, categoria.id)"
+          (click)="cambiarCategoria(categoria.id)">
+          {{ categoria.nombre }}
+        </button>
+      </div>
+
+      <h2>Habilidades</h2>
+
+      <div class="field search-field">
+        <label>Buscar habilidad</label>
+        <input
+          type="text"
+          name="busquedaHabilidades"
+          [(ngModel)]="busquedaHabilidades"
+          placeholder="Ejemplo: Java, Angular, Excel">
+      </div>
+
+      <div class="chips">
+        <button
+          type="button"
+          class="chip"
+          *ngFor="let habilidad of habilidadesFiltradas()"
+          [class.active]="estaSeleccionadoNumber(perfil.habilidadesId, habilidad.id)"
+          (click)="cambiarHabilidad(habilidad.id)">
+          {{ habilidad.nombre }}
+        </button>
+      </div>
+
+      <h2>Herramientas</h2>
+
+      <div class="field search-field">
+        <label>Buscar herramienta</label>
+        <input
+          type="text"
+          name="busquedaHerramientas"
+          [(ngModel)]="busquedaHerramientas"
+          placeholder="Ejemplo: Postman, Figma, Excel">
+      </div>
+
+      <div class="chips">
+        <button
+          type="button"
+          class="chip"
+          *ngFor="let herramienta of herramientasFiltradas()"
+          [class.active]="estaSeleccionadoNumber(perfil.herramientasId, herramienta.id)"
+          (click)="cambiarHerramienta(herramienta.id)">
+          {{ herramienta.nombre }}
+        </button>
+      </div>
+
+      <h2>Modalidades</h2>
+
+      <div class="field search-field">
+        <label>Buscar modalidad</label>
+        <input
+          type="text"
+          name="busquedaModalidades"
+          [(ngModel)]="busquedaModalidades"
+          placeholder="Ejemplo: remoto, presencial, híbrido">
+      </div>
+
+      <div class="chips">
+        <button
+          type="button"
+          class="chip"
+          *ngFor="let modalidad of modalidadesFiltradas()"
+          [class.active]="estaSeleccionadoNumber(perfil.modalidadesId, modalidad.id)"
+          (click)="cambiarModalidad(modalidad.id)">
+          {{ modalidad.nombre }}
+        </button>
+      </div>
+
+      <div class="messages">
+        <p class="error" *ngIf="mensajeError">
+          {{ mensajeError }}
+        </p>
+
+        <p class="success" *ngIf="mensajeExito">
+          {{ mensajeExito }}
+        </p>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn-secondary" (click)="cancelar()">
+          Cancelar
+        </button>
+
+        <button
+          type="submit"
+          class="btn-primary"
+          [disabled]="guardando">
+          {{ guardando ? 'Guardando...' : 'Guardar cambios' }}
+        </button>
+      </div>
+
+    </form>
+
+  </section>
+
+</div>

@@ -1,0 +1,351 @@
+<app-topbar></app-topbar>
+
+<div class="offers-page">
+  <div class="offers-container">
+
+    <header class="offers-header">
+      <div>
+        <h1>{{ tituloPagina }}</h1>
+        <p>{{ descripcionPagina }}</p>
+      </div>
+
+      <div class="header-actions">
+        <button
+          type="button"
+          class="btn-secondary"
+          (click)="irAPerfilEmpleado()">
+          Volver al perfil
+        </button>
+
+        <button
+          type="button"
+          class="btn-primary"
+          *ngIf="!modoParaTi"
+          (click)="irARecomendaciones()">
+          Ver recomendaciones
+        </button>
+
+        <button
+          type="button"
+          class="btn-primary"
+          *ngIf="modoParaTi"
+          (click)="irATodasLasOfertas()">
+          Ver todas las ofertas
+        </button>
+      </div>
+    </header>
+
+    <div class="offers-layout">
+
+      <aside class="filters-card" *ngIf="!modoParaTi">
+        <div class="filters-title">
+          <h2>Filtros</h2>
+          <p>Refina las ofertas laborales disponibles.</p>
+        </div>
+
+        <div class="filter-grid">
+          <div class="field">
+            <label>Buscar por palabra clave</label>
+            <input
+              type="text"
+              [(ngModel)]="keyword"
+              placeholder="Cocina, limpieza, desarrollo">
+          </div>
+
+          <div class="field">
+            <label>Ubicación</label>
+            <input
+              type="text"
+              [(ngModel)]="ubicacion"
+              placeholder="Miraflores, Lima">
+          </div>
+
+          <div class="field">
+            <label>Categoría</label>
+            <select [(ngModel)]="categoriaSeleccionada">
+              <option [ngValue]="0">Todas</option>
+              <option *ngFor="let categoria of categorias" [ngValue]="categoria.id">
+                {{ categoria.nombre }}
+              </option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Modalidad</label>
+            <select [(ngModel)]="modalidadSeleccionada">
+              <option [ngValue]="0">Todas</option>
+              <option *ngFor="let modalidad of modalidades" [ngValue]="modalidad.id">
+                {{ modalidad.nombre }}
+              </option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Experiencia</label>
+            <select [(ngModel)]="experienciaSeleccionada">
+              <option [ngValue]="0">Todas</option>
+              <option *ngFor="let experiencia of experiencias" [ngValue]="experiencia.id">
+                {{ experiencia.nombre }}
+              </option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Monto mínimo</label>
+            <input
+              type="number"
+              [(ngModel)]="montoMin"
+              placeholder="500">
+          </div>
+
+          <div class="field">
+            <label>Monto máximo</label>
+            <input
+              type="number"
+              [(ngModel)]="montoMax"
+              placeholder="2500">
+          </div>
+
+          <div class="field">
+            <label>Ordenar por</label>
+            <select [(ngModel)]="sortBy">
+              <option value="">Sin orden</option>
+              <option value="fecha">Fecha</option>
+              <option value="monto">Monto</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Orden</label>
+            <select [(ngModel)]="order">
+              <option value="asc">Ascendente</option>
+              <option value="desc">Descendente</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="filter-actions">
+          <button type="button" class="btn-secondary" (click)="limpiarFiltros()">
+            Limpiar
+          </button>
+
+          <button type="button" class="btn-primary" (click)="filtrar()">
+            Aplicar filtros
+          </button>
+        </div>
+      </aside>
+
+      <main class="offers-main" [class.full-width]="modoParaTi">
+        <div class="recommendation-note" *ngIf="modoParaTi">
+          Estas recomendaciones se basan en las categorías seleccionadas en tu perfil.
+          Si no encuentras ofertas recomendadas, puedes editar tu perfil o revisar todas las ofertas disponibles.
+        </div>
+
+        <div class="quick-sort">
+          <button type="button" (click)="aplicarOrden('fecha', 'desc')">
+            Más recientes
+          </button>
+
+          <button type="button" (click)="aplicarOrden('monto', 'desc')">
+            Mayor pago
+          </button>
+
+          <button type="button" (click)="aplicarOrden('monto', 'asc')">
+            Menor pago
+          </button>
+        </div>
+
+        <div class="loading-box" *ngIf="cargando">
+          Cargando ofertas laborales...
+        </div>
+
+        <div class="error-box" *ngIf="!cargando && mensajeError">
+          {{ mensajeError }}
+        </div>
+
+        <div class="empty-box" *ngIf="!cargando && !mensajeError && ofertas.length === 0">
+          <ng-container *ngIf="modoParaTi; else sinOfertasGenerales">
+            Aún no tenemos recomendaciones para ti.
+            Agrega categorías de trabajo en tu perfil o explora todas las ofertas disponibles.
+
+            <div class="empty-actions">
+              <button type="button" class="btn-primary" (click)="irAEditarPerfil()">
+                Editar perfil
+              </button>
+
+              <button type="button" class="btn-secondary" (click)="irATodasLasOfertas()">
+                Ver todas las ofertas
+              </button>
+            </div>
+          </ng-container>
+
+          <ng-template #sinOfertasGenerales>
+            No se encontraron ofertas con los criterios seleccionados.
+          </ng-template>
+        </div>
+
+        <section class="offers-grid" *ngIf="!cargando && ofertas.length > 0">
+          <article class="offer-card" *ngFor="let oferta of ofertas">
+            <div class="offer-top">
+              <div>
+                <h2>{{ oferta.titulo }}</h2>
+                <p class="company">{{ oferta.empleador }}</p>
+              </div>
+
+              <div class="amount">
+                S/ {{ oferta.montoTotal }}
+              </div>
+            </div>
+
+            <p class="description">
+              {{ oferta.descripcion }}
+            </p>
+
+            <div class="meta">
+              <span>{{ oferta.distrito }}</span>
+              <span>{{ oferta.categoria }}</span>
+              <span>{{ oferta.experiencia }}</span>
+              <span>{{ oferta.tipoDuracion }}</span>
+            </div>
+
+            <div class="chips" *ngIf="oferta.habilidades && oferta.habilidades.length">
+              <span class="chip" *ngFor="let habilidad of oferta.habilidades">
+                {{ habilidad.nombre }}
+              </span>
+            </div>
+
+            <div class="offer-footer">
+              <span class="date">
+                Publicado: {{ oferta.fechaPublicacion }}
+              </span>
+
+              <span class="already-badge" *ngIf="yaPostulo(oferta.id)">
+                Ya postulaste
+              </span>
+
+              <button type="button" (click)="openDetail(oferta.id)">
+                Ver detalle
+              </button>
+            </div>
+          </article>
+        </section>
+      </main>
+
+    </div>
+  </div>
+</div>
+
+<div
+  class="drawer-overlay"
+  [class.open]="drawerOpen"
+  (click)="closeDrawer()">
+</div>
+
+<aside
+  class="drawer"
+  [class.open]="drawerOpen"
+  *ngIf="selectedOferta">
+
+  <div class="d-topbar">
+    <div class="back" (click)="closeDrawer()">
+      <span class="arrow">←</span>
+      Volver
+    </div>
+
+    <div class="opennew" (click)="openInNewWindow()">
+      Abrir en nueva ventana
+    </div>
+  </div>
+
+  <div class="d-content">
+    <div class="d-left">
+      <h2 class="d-title">
+        {{ selectedOferta.titulo }}
+      </h2>
+
+      <div class="d-meta">
+        <span>{{ selectedOferta.empleador }}</span>
+        <span>{{ selectedOferta.distrito }}</span>
+        <span>S/ {{ selectedOferta.montoTotal }}</span>
+      </div>
+
+      <div class="section">
+        <h3 class="sec-title">Descripción</h3>
+        <p class="p">
+          {{ selectedOferta.descripcion }}
+        </p>
+      </div>
+
+      <div class="section">
+        <h3 class="sec-title">Información de la oferta</h3>
+
+        <div class="chipslight">
+          <span class="chiplight">{{ selectedOferta.categoria }}</span>
+          <span class="chiplight">{{ selectedOferta.experiencia }}</span>
+          <span class="chiplight">{{ selectedOferta.tipoDuracion }}</span>
+          <span class="chiplight">Publicado: {{ selectedOferta.fechaPublicacion }}</span>
+        </div>
+      </div>
+
+      <div class="section" *ngIf="selectedOferta.habilidades && selectedOferta.habilidades.length">
+        <h3 class="sec-title">Habilidades requeridas</h3>
+
+        <div class="chipslight">
+          <span class="chiplight" *ngFor="let habilidad of selectedOferta.habilidades">
+            {{ habilidad.nombre }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-right">
+      <div class="applyBox">
+        <div class="applyActions">
+          <button
+            class="applyBtn primary"
+            type="button"
+            [disabled]="yaPostulo(selectedOferta.id)"
+            (click)="applyNow()">
+            {{ yaPostulo(selectedOferta.id) ? 'Ya postulaste' : 'Postular' }}
+          </button>
+
+          <button class="applyBtn secondary" type="button" (click)="closeDrawer()">
+            Cerrar
+          </button>
+        </div>
+
+        <div class="applyMeta" *ngIf="!yaPostulo(selectedOferta.id)">
+          Serás redirigido al formulario para enviar tu CV a esta oferta.
+        </div>
+
+        <div class="applyMeta already-applied" *ngIf="yaPostulo(selectedOferta.id)">
+          Ya postulaste a esta oferta. No puedes enviar otra postulación.
+        </div>
+      </div>
+
+      <div class="rightBlock">
+        <p class="rbTitle">Resumen</p>
+
+        <div class="rbRow">
+          <span>Monto</span>
+          <strong>S/ {{ selectedOferta.montoTotal }}</strong>
+        </div>
+
+        <div class="rbRow">
+          <span>Categoría</span>
+          <strong>{{ selectedOferta.categoria }}</strong>
+        </div>
+
+        <div class="rbRow">
+          <span>Experiencia</span>
+          <strong>{{ selectedOferta.experiencia }}</strong>
+        </div>
+
+        <div class="rbRow">
+          <span>Ubicación</span>
+          <strong>{{ selectedOferta.distrito }}</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</aside>

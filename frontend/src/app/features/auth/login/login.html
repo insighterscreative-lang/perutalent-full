@@ -1,0 +1,62 @@
+<div class="container">
+
+    <!-- IZQUIERDA -->
+    <div class="left">
+        <h1>Conecta talento con oportunidades reales</h1>
+        <p>
+            Encuentra trabajos, genera ingresos o contrata profesionales de forma rápida, segura y sin fricción.
+        </p>
+    </div>
+
+    <!-- DERECHA -->
+    <div class="right">
+        <div class="card">
+
+            <h2>Iniciar sesión</h2>
+
+            <!-- 🔥 FORMULARIO -->
+            <form (ngSubmit)="login()">
+
+                <input 
+                    class="input"
+                    type="email"
+                    placeholder="Correo electrónico"
+                    [(ngModel)]="email"
+                    name="email"
+                    required
+                    (input)="error=''"
+                >
+
+                <input 
+                    class="input"
+                    type="password"
+                    placeholder="Contraseña"
+                    [(ngModel)]="password"
+                    name="password"
+                    required
+                    (input)="error=''"
+                >
+
+                <!-- ⚠️ MENSAJE DE ERROR -->
+                <p *ngIf="error" style="color: red; margin-bottom: 10px;">
+                    {{ error }}
+                </p>
+
+                <button 
+                    class="btn primary" 
+                    type="submit" 
+                    [disabled]="loading"
+                >
+                    {{ loading ? 'Ingresando...' : 'Ingresar' }}
+                </button>
+
+            </form>
+
+            <div class="link">
+                ¿No tienes cuenta? <a href="/register">Regístrate</a>
+            </div>
+
+        </div>
+    </div>
+
+</div>

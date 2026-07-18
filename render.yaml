@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: perutalent-full-api
+    runtime: java
+    plan: free
+    rootDir: backend
+    buildCommand: chmod +x mvnw && ./mvnw clean package -DskipTests
+    startCommand: java -jar target/Up-Work-Perusalen-0.0.1-SNAPSHOT.jar
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_USERNAME
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false
+
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRATION
+        value: "86400000"
+
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: SENDGRID_FROM_EMAIL
+        sync: false
+      - key: SENDGRID_FROM_NAME
+        value: "PeruTalent"
+
+      - key: UPLOAD_DIR
+        value: "/tmp/perutalent/uploads/cvs/postulaciones"
+
+      - key: CULQI_SECRET_KEY
+        sync: false
+      - key: CULQI_PUBLIC_KEY
+        sync: false
+      - key: CULQI_API_URL
+        value: "https://api.culqi.com/v2"

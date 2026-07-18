@@ -1,0 +1,390 @@
+<app-topbar></app-topbar>
+
+<div class="page">
+
+  <div class="container">
+
+    <header class="header">
+
+      <div>
+        <h1>Mis ofertas laborales</h1>
+        <p>Administra tus trabajos activos y revisa tus trabajos finalizados.</p>
+      </div>
+
+      <div class="header-actions">
+
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="volverPerfil()">
+          Volver al perfil
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="crearOferta()">
+          Crear oferta
+        </button>
+
+      </div>
+
+    </header>
+
+    <div class="loading" *ngIf="cargando">
+      Cargando tus ofertas...
+    </div>
+
+    <div class="error-box" *ngIf="!cargando && mensajeError">
+      {{ mensajeError }}
+    </div>
+
+    <ng-container *ngIf="!cargando && perfil">
+
+      <section class="summary-grid">
+
+        <div class="summary-card">
+          <span>Trabajos activos</span>
+          <strong>{{ ofertasActivas.length }}</strong>
+        </div>
+
+        <div class="summary-card">
+          <span>Trabajos finalizados</span>
+          <strong>{{ ofertasFinalizadas.length }}</strong>
+        </div>
+
+      </section>
+
+      <section class="card">
+
+        <div class="tabs">
+
+          <button
+            type="button"
+            class="tab"
+            [class.active]="tabActiva === 'activos'"
+            (click)="cambiarTab('activos')">
+            Activos
+          </button>
+
+          <button
+            type="button"
+            class="tab"
+            [class.active]="tabActiva === 'finalizados'"
+            (click)="cambiarTab('finalizados')">
+            Finalizados
+          </button>
+
+        </div>
+
+        <div class="job-list" *ngIf="tabActiva === 'activos'">
+
+          <div class="empty" *ngIf="ofertasActivas.length === 0">
+            No tienes ofertas activas actualmente.
+          </div>
+
+          <article class="job-item active-job" *ngFor="let oferta of ofertasActivas">
+
+            <div class="job-header">
+
+              <div>
+                <h2>{{ oferta.titulo }}</h2>
+                <p>{{ oferta.descripcion }}</p>
+              </div>
+
+              <span class="state active">
+                {{ oferta.estadoOferta }}
+              </span>
+
+            </div>
+
+            <div class="job-meta">
+
+              <span *ngIf="oferta.distrito">
+                {{ oferta.distrito }}
+              </span>
+
+              <span *ngIf="oferta.categoria">
+                {{ oferta.categoria }}
+              </span>
+
+              <span *ngIf="oferta.modalidad">
+                {{ oferta.modalidad }}
+              </span>
+
+              <span *ngIf="oferta.experiencia">
+                {{ oferta.experiencia }}
+              </span>
+
+            </div>
+
+            <div class="job-actions">
+
+              <button
+                type="button"
+                class="btn btn-secondary"
+                (click)="verDetalle(oferta)">
+                Ver detalle
+              </button>
+
+              <button
+                type="button"
+                class="btn btn-primary"
+                *ngIf="puedeEditar(oferta)"
+                (click)="editarOferta(oferta)">
+                Editar
+              </button>
+
+            </div>
+
+          </article>
+
+        </div>
+
+        <div class="job-list" *ngIf="tabActiva === 'finalizados'">
+
+          <div class="empty" *ngIf="ofertasFinalizadas.length === 0">
+            Aún no tienes ofertas finalizadas.
+          </div>
+
+          <article class="job-item" *ngFor="let oferta of ofertasFinalizadas">
+
+            <div class="job-header">
+
+              <div>
+                <h2>{{ oferta.titulo }}</h2>
+                <p>{{ oferta.descripcion }}</p>
+              </div>
+
+              <span class="state finished">
+                {{ oferta.estadoOferta }}
+              </span>
+
+            </div>
+
+            <div class="job-meta">
+
+              <span *ngIf="oferta.distrito">
+                {{ oferta.distrito }}
+              </span>
+
+              <span *ngIf="oferta.categoria">
+                {{ oferta.categoria }}
+              </span>
+
+              <span *ngIf="oferta.modalidad">
+                {{ oferta.modalidad }}
+              </span>
+
+              <span *ngIf="oferta.experiencia">
+                {{ oferta.experiencia }}
+              </span>
+
+            </div>
+
+            <div class="job-actions">
+
+              <button
+                type="button"
+                class="btn btn-secondary"
+                (click)="verDetalle(oferta)">
+                Ver detalle
+              </button>
+
+            </div>
+
+          </article>
+
+        </div>
+
+      </section>
+
+    </ng-container>
+
+  </div>
+
+</div>
+
+<div
+  class="drawer-overlay"
+  [class.open]="drawerOpen"
+  (click)="cerrarDetalle()">
+</div>
+
+<aside
+  class="drawer"
+  [class.open]="drawerOpen"
+  *ngIf="ofertaSeleccionada">
+
+  <div class="d-topbar">
+    <div class="back" (click)="cerrarDetalle()">
+      <span class="arrow">←</span>
+      Volver
+    </div>
+
+    <div
+      class="opennew"
+      *ngIf="puedeEditar(ofertaSeleccionada)"
+      (click)="editarOferta(ofertaSeleccionada)">
+      Editar oferta
+    </div>
+  </div>
+
+  <div class="d-content">
+
+    <div class="d-left">
+
+      <h2 class="d-title">
+        {{ ofertaSeleccionada.titulo }}
+      </h2>
+
+      <div class="d-meta">
+        <span *ngIf="ofertaSeleccionada.empleador">
+          {{ ofertaSeleccionada.empleador }}
+        </span>
+
+        <span *ngIf="ofertaSeleccionada.distrito">
+          {{ ofertaSeleccionada.distrito }}
+        </span>
+
+        <span *ngIf="ofertaSeleccionada.montoTotal !== undefined && ofertaSeleccionada.montoTotal !== null">
+          S/ {{ ofertaSeleccionada.montoTotal }}
+        </span>
+      </div>
+
+      <div class="section">
+        <h3 class="sec-title">Descripción</h3>
+        <p class="p">
+          {{ ofertaSeleccionada.descripcion || 'Esta oferta no tiene descripción registrada.' }}
+        </p>
+      </div>
+
+      <div class="section">
+        <h3 class="sec-title">Información de la oferta</h3>
+
+        <div class="chipslight">
+          <span class="chiplight" *ngIf="ofertaSeleccionada.categoria">
+            {{ ofertaSeleccionada.categoria }}
+          </span>
+
+          <span class="chiplight" *ngIf="ofertaSeleccionada.modalidad">
+            {{ ofertaSeleccionada.modalidad }}
+          </span>
+
+          <span class="chiplight" *ngIf="ofertaSeleccionada.experiencia">
+            {{ ofertaSeleccionada.experiencia }}
+          </span>
+
+          <span class="chiplight" *ngIf="ofertaSeleccionada.tipoDuracion">
+            {{ ofertaSeleccionada.tipoDuracion }}
+          </span>
+
+          <span class="chiplight">
+            Estado: {{ ofertaSeleccionada.estadoOferta }}
+          </span>
+
+          <span class="chiplight" *ngIf="ofertaSeleccionada.fechaPublicacion">
+            Publicado: {{ ofertaSeleccionada.fechaPublicacion }}
+          </span>
+        </div>
+      </div>
+
+      <div class="section" *ngIf="ofertaSeleccionada.habilidades && ofertaSeleccionada.habilidades.length">
+        <h3 class="sec-title">Habilidades requeridas</h3>
+
+        <div class="chipslight">
+          <span class="chiplight" *ngFor="let habilidad of ofertaSeleccionada.habilidades">
+            {{ habilidad.nombre }}
+          </span>
+        </div>
+      </div>
+
+      <div class="section" *ngIf="ofertaSeleccionada.estadoOferta === 'FINALIZADA'">
+        <h3 class="sec-title">Oferta finalizada</h3>
+
+        <p class="p">
+          Esta oferta ya fue finalizada, por lo que no puede ser editada desde esta pantalla.
+        </p>
+      </div>
+
+    </div>
+
+    <div class="d-right">
+
+      <div class="applyBox">
+
+        <div class="applyActions">
+          <button
+            class="applyBtn primary"
+            type="button"
+            (click)="verPostulantes(ofertaSeleccionada)">
+            Ver postulantes
+          </button>
+
+          <button
+            class="applyBtn secondary"
+            type="button"
+            *ngIf="puedeEditar(ofertaSeleccionada)"
+            (click)="editarOferta(ofertaSeleccionada)">
+            Editar oferta
+          </button>
+
+          <button
+            class="applyBtn secondary"
+            type="button"
+            (click)="cerrarDetalle()">
+            Cerrar
+          </button>
+        </div>
+
+        <div class="applyMeta">
+          Aquí puedes revisar cómo se ve tu oferta para los empleados y gestionar sus postulaciones.
+        </div>
+
+      </div>
+
+      <div class="rightBlock">
+        <p class="rbTitle">Resumen</p>
+
+        <div class="rbRow" *ngIf="ofertaSeleccionada.montoTotal !== undefined && ofertaSeleccionada.montoTotal !== null">
+          <span>Monto</span>
+          <strong>S/ {{ ofertaSeleccionada.montoTotal }}</strong>
+        </div>
+
+        <div class="rbRow" *ngIf="ofertaSeleccionada.categoria">
+          <span>Categoría</span>
+          <strong>{{ ofertaSeleccionada.categoria }}</strong>
+        </div>
+
+        <div class="rbRow" *ngIf="ofertaSeleccionada.experiencia">
+          <span>Experiencia</span>
+          <strong>{{ ofertaSeleccionada.experiencia }}</strong>
+        </div>
+
+        <div class="rbRow" *ngIf="ofertaSeleccionada.distrito">
+          <span>Ubicación</span>
+          <strong>{{ ofertaSeleccionada.distrito }}</strong>
+        </div>
+
+        <div class="rbRow" *ngIf="ofertaSeleccionada.modalidad">
+          <span>Modalidad</span>
+          <strong>{{ ofertaSeleccionada.modalidad }}</strong>
+        </div>
+
+        <div class="rbRow" *ngIf="ofertaSeleccionada.tipoDuracion">
+          <span>Duración</span>
+          <strong>{{ ofertaSeleccionada.tipoDuracion }}</strong>
+        </div>
+
+        <div class="rbRow">
+          <span>Estado</span>
+          <strong>{{ ofertaSeleccionada.estadoOferta }}</strong>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</aside>

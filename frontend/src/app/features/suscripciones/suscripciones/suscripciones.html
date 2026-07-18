@@ -1,0 +1,205 @@
+<app-topbar></app-topbar>
+
+<div class="page">
+
+  <div class="container">
+
+    <div class="header-card">
+
+      <div>
+        <p class="eyebrow">Suscripciones</p>
+        <h1>Elige el plan que mejor se adapte a tu trabajo</h1>
+        <p class="subtitle">
+          Puedes revisar los planes sin iniciar sesión. Para elegir uno, deberás ingresar a tu cuenta.
+        </p>
+
+        <p class="test-note" *ngIf="autenticado && culqiTestMode">
+          Modo prueba Culqi activo. Los pagos realizados aquí no cobran dinero real.
+        </p>
+      </div>
+
+      <div class="header-actions" *ngIf="!autenticado">
+        <button class="btn btn-secondary" type="button" (click)="irLogin()">
+          Iniciar sesión
+        </button>
+
+        <button class="btn btn-primary" type="button" (click)="irRegistro()">
+          Crear cuenta
+        </button>
+      </div>
+
+      <button
+        *ngIf="autenticado"
+        class="btn btn-secondary"
+        type="button"
+        (click)="volver()">
+        Volver a mi perfil
+      </button>
+
+    </div>
+
+    <div class="public-info" *ngIf="!autenticado && !cargando">
+      Estás viendo los planes como visitante. Inicia sesión para activar o cambiar tu suscripción.
+    </div>
+
+    <div class="loading" *ngIf="cargando">
+      Cargando suscripciones...
+    </div>
+
+    <div class="error-box" *ngIf="!cargando && mensajeError">
+      {{ mensajeError }}
+    </div>
+
+    <div class="success-box" *ngIf="!cargando && mensajeExito">
+      {{ mensajeExito }}
+    </div>
+
+    <ng-container *ngIf="!cargando">
+
+      <section class="current-card" *ngIf="autenticado && miSuscripcion">
+
+        <div>
+          <span class="pill" [class.premium]="miSuscripcion.esPremium">
+            {{ miSuscripcion.esPremium ? 'Premium activo' : 'Plan gratuito' }}
+          </span>
+
+          <h2>Tu plan actual es {{ miSuscripcion.nombrePlan }}</h2>
+
+          <p>
+            Estado: <strong>{{ miSuscripcion.estadoSuscripcion }}</strong>
+            <span *ngIf="miSuscripcion.fechaFin">
+              · Vence el {{ miSuscripcion.fechaFin }}
+            </span>
+          </p>
+        </div>
+
+        <div class="current-mini-grid" *ngIf="miUso">
+
+          <div class="mini-stat">
+            <strong>{{ obtenerTextoCantidadPlural(miUso.postulacionesRestantes) }}</strong>
+            <span>postulaciones restantes</span>
+          </div>
+
+          <div class="mini-stat">
+            <strong>{{ obtenerTextoCantidadPlural(miUso.recomendacionesRestantes) }}</strong>
+            <span>recomendaciones restantes</span>
+          </div>
+
+          <div class="mini-stat">
+            <strong>{{ obtenerTextoCantidadPlural(miUso.ofertasRestantes) }}</strong>
+            <span>ofertas restantes</span>
+          </div>
+
+        </div>
+
+      </section>
+
+      <section class="plans-grid">
+
+        <article
+          class="plan-card"
+          *ngFor="let plan of planes"
+          [class.featured]="esPremium(plan)"
+          [class.current]="autenticado && esPlanActual(plan)">
+
+          <div class="plan-top">
+            <div>
+              <span class="tag" *ngIf="esPremium(plan)">Recomendado</span>
+              <span class="tag basic" *ngIf="!esPremium(plan)">Básico</span>
+
+              <h3>{{ plan.nombrePlan }}</h3>
+              <p>{{ plan.descripcion }}</p>
+            </div>
+
+            <div class="price">
+              <strong>{{ obtenerPrecio(plan) }}</strong>
+              <span>{{ obtenerPeriodo(plan) }}</span>
+            </div>
+          </div>
+
+          <ul class="benefits">
+            <li *ngFor="let beneficio of obtenerBeneficios(plan)">
+              <span>✓</span>
+              {{ beneficio }}
+            </li>
+          </ul>
+
+          <button
+            type="button"
+            class="btn plan-btn"
+            [class.btn-primary]="!autenticado || !esPlanActual(plan)"
+            [class.btn-disabled]="autenticado && esPlanActual(plan)"
+            [disabled]="autenticado && (esPlanActual(plan) || cambiandoPlan || pagandoPremium)"
+            (click)="seleccionarPlan(plan)">
+            {{ obtenerTextoBoton(plan) }}
+          </button>
+
+        </article>
+
+      </section>
+
+      <section class="usage-card" *ngIf="autenticado && miUso">
+
+        <div class="section-title">
+          Uso del plan en {{ miUso.periodo }}
+        </div>
+
+        <div class="usage-grid">
+
+          <div class="usage-item">
+            <div class="usage-head">
+              <strong>Postulaciones</strong>
+              <span>
+                {{ miUso.postulacionesUsadas }} /
+                {{ obtenerTextoCantidad(miUso.maxPostulacionesMes) }}
+              </span>
+            </div>
+            <div class="bar">
+              <div
+                class="bar-fill"
+                [style.width.%]="obtenerPorcentajeUsado(miUso.postulacionesUsadas, miUso.maxPostulacionesMes)">
+              </div>
+            </div>
+          </div>
+
+          <div class="usage-item">
+            <div class="usage-head">
+              <strong>Recomendaciones</strong>
+              <span>
+                {{ miUso.recomendacionesVistas }} /
+                {{ obtenerTextoCantidad(miUso.maxRecomendaciones) }}
+              </span>
+            </div>
+            <div class="bar">
+              <div
+                class="bar-fill"
+                [style.width.%]="obtenerPorcentajeUsado(miUso.recomendacionesVistas, miUso.maxRecomendaciones)">
+              </div>
+            </div>
+          </div>
+
+          <div class="usage-item">
+            <div class="usage-head">
+              <strong>Ofertas activas</strong>
+              <span>
+                {{ miUso.ofertasPublicadas }} /
+                {{ obtenerTextoCantidad(miUso.maxOfertasActivas) }}
+              </span>
+            </div>
+            <div class="bar">
+              <div
+                class="bar-fill"
+                [style.width.%]="obtenerPorcentajeUsado(miUso.ofertasPublicadas, miUso.maxOfertasActivas)">
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+    </ng-container>
+
+  </div>
+
+</div>

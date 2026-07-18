@@ -1,0 +1,263 @@
+<app-topbar></app-topbar>
+
+<div class="postulantes-page">
+  <div class="postulantes-container">
+
+    <header class="postulantes-header">
+      <div>
+        <h1>Postulantes de la oferta</h1>
+        <p>
+          Revisa, filtra y gestiona los empleados que postularon a esta oferta laboral.
+          Los postulantes Premium aparecen destacados para facilitar la revisión.
+        </p>
+      </div>
+
+      <div class="header-actions">
+        <button
+          type="button"
+          class="btn-secondary"
+          (click)="volverAMisOfertas()">
+          Volver a mis ofertas
+        </button>
+      </div>
+    </header>
+
+    <div class="premium-note" *ngIf="!cargando && postulantes.length > 0">
+      <strong>Prioridad Premium:</strong>
+      los postulantes con plan Premium se muestran primero y aparecen con una insignia destacada.
+    </div>
+
+    <div class="loading-box" *ngIf="cargando">
+      Cargando postulantes...
+    </div>
+
+    <div class="error-box" *ngIf="!cargando && mensajeError">
+      {{ mensajeError }}
+    </div>
+
+    <div class="success-box" *ngIf="!cargando && mensajeExito">
+      {{ mensajeExito }}
+    </div>
+
+    <div
+      class="empty-box"
+      *ngIf="!cargando && postulantes.length === 0">
+      Esta oferta todavía no tiene postulantes.
+    </div>
+
+    <div class="postulantes-layout" *ngIf="!cargando && postulantes.length > 0">
+
+      <aside class="filters-card">
+        <div class="filters-title">
+          <h2>Filtros</h2>
+          <p>Encuentra postulantes por estado, ubicación, modalidad, habilidades o herramientas.</p>
+        </div>
+
+        <div class="filter-grid">
+          <div class="field">
+            <label>Estado de postulación</label>
+            <select [(ngModel)]="filtroEstado">
+              <option value="TODOS">Todos</option>
+              <option value="PENDIENTE">Pendiente</option>
+              <option value="ACEPTADA">Aceptada</option>
+              <option value="RECHAZADA">Rechazada</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Buscar por nombre o correo</label>
+            <input
+              type="text"
+              placeholder="Juan, María, correo@email.com"
+              [(ngModel)]="filtroNombre">
+          </div>
+
+          <div class="field">
+            <label>Distrito</label>
+            <select [(ngModel)]="filtroDistritoId">
+              <option value="">Todos</option>
+              <option
+                *ngFor="let distrito of distritosDisponibles"
+                [value]="distrito.id">
+                {{ distrito.nombre }}
+              </option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Modalidad</label>
+            <select [(ngModel)]="filtroModalidadId">
+              <option value="">Todas</option>
+              <option
+                *ngFor="let modalidad of modalidadesDisponibles"
+                [value]="modalidad.id">
+                {{ modalidad.nombre }}
+              </option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Habilidad</label>
+            <select [(ngModel)]="filtroHabilidadId">
+              <option value="">Todas</option>
+              <option
+                *ngFor="let habilidad of habilidadesDisponibles"
+                [value]="habilidad.id">
+                {{ habilidad.nombre }}
+              </option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Herramienta</label>
+            <select [(ngModel)]="filtroHerramientaId">
+              <option value="">Todas</option>
+              <option
+                *ngFor="let herramienta of herramientasDisponibles"
+                [value]="herramienta.id">
+                {{ herramienta.nombre }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="filter-actions">
+          <span class="filter-result">
+            Mostrando {{ postulantesFiltrados.length }} de {{ postulantes.length }} postulantes
+          </span>
+
+          <button
+            type="button"
+            class="btn-secondary"
+            (click)="limpiarFiltros()">
+            Limpiar
+          </button>
+        </div>
+      </aside>
+
+      <main class="postulantes-main">
+        <div
+          class="empty-box"
+          *ngIf="postulantesFiltrados.length === 0">
+          No hay postulantes que coincidan con los filtros seleccionados.
+        </div>
+
+        <section
+          class="postulantes-grid"
+          *ngIf="postulantesFiltrados.length > 0">
+
+          <article
+            class="postulante-card"
+            *ngFor="let postulante of postulantesFiltrados"
+            [class.postulante-premium]="esPremium(postulante)">
+
+            <div class="premium-ribbon" *ngIf="esPremium(postulante)">
+              Premium
+            </div>
+
+            <div class="postulante-top">
+              <div>
+                <div class="name-line">
+                  <h2>
+                    {{ postulante.nombreEmpleado }} {{ postulante.apellidoEmpleado }}
+                  </h2>
+
+                  <span
+                    class="plan-badge"
+                    [class.plan-premium]="esPremium(postulante)">
+                    {{ obtenerTextoPlan(postulante) }}
+                  </span>
+                </div>
+
+                <p class="email">
+                  {{ postulante.emailEmpleado }}
+                </p>
+              </div>
+
+              <span
+                class="estado"
+                [class.estado-pendiente]="postulante.estadoPostulacion === 'PENDIENTE'"
+                [class.estado-aceptada]="postulante.estadoPostulacion === 'ACEPTADA'"
+                [class.estado-rechazada]="postulante.estadoPostulacion === 'RECHAZADA'">
+                {{ postulante.estadoPostulacion }}
+              </span>
+            </div>
+
+            <div class="premium-copy" *ngIf="esPremium(postulante)">
+              Este postulante tiene prioridad Premium.
+            </div>
+
+            <div class="postulante-info">
+              <div class="info-row">
+                <span>Teléfono</span>
+                <strong>{{ postulante.telefonoEmpleado || 'No registrado' }}</strong>
+              </div>
+
+              <div class="info-row">
+                <span>Distrito</span>
+                <strong>{{ postulante.distrito || 'No registrado' }}</strong>
+              </div>
+
+              <div class="info-row">
+                <span>Fecha de postulación</span>
+                <strong>{{ postulante.fechaPostulacion }}</strong>
+              </div>
+            </div>
+
+            <div class="meta" *ngIf="postulante.modalidades.length">
+              <span *ngFor="let modalidad of postulante.modalidades">
+                {{ modalidad }}
+              </span>
+            </div>
+
+            <div class="chips" *ngIf="postulante.habilidades.length">
+              <span class="chip" *ngFor="let habilidad of postulante.habilidades">
+                {{ habilidad }}
+              </span>
+            </div>
+
+            <div class="chips herramientas" *ngIf="postulante.herramientas.length">
+              <span class="chip" *ngFor="let herramienta of postulante.herramientas">
+                {{ herramienta }}
+              </span>
+            </div>
+
+            <div class="postulante-actions">
+              <button
+                type="button"
+                class="btn-primary"
+                (click)="aceptarPostulacion(postulante)"
+                [disabled]="postulante.estadoPostulacion !== 'PENDIENTE' || accionandoId === postulante.idPostulacion">
+                {{ accionandoId === postulante.idPostulacion ? 'Procesando...' : 'Aceptar' }}
+              </button>
+
+              <button
+                type="button"
+                class="btn-danger"
+                (click)="rechazarPostulacion(postulante)"
+                [disabled]="postulante.estadoPostulacion !== 'PENDIENTE' || accionandoId === postulante.idPostulacion">
+                Rechazar
+              </button>
+
+              <button
+                type="button"
+                class="btn-secondary"
+                (click)="verPerfilEmpleado(postulante)">
+                Ver perfil
+              </button>
+
+              <button
+                type="button"
+                class="btn-secondary"
+                (click)="verCv(postulante)"
+                [disabled]="!postulante.cvUrl">
+                Ver CV
+              </button>
+            </div>
+          </article>
+        </section>
+      </main>
+
+    </div>
+  </div>
+</div>

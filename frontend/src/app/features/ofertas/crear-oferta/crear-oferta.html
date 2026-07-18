@@ -1,0 +1,311 @@
+<div class="page">
+
+  <section class="card">
+
+    <div class="header">
+      <div>
+        <h1>{{ tituloPagina }}</h1>
+        <p>{{ descripcionPagina }}</p>
+      </div>
+    </div>
+
+    <div class="loading" *ngIf="!catalogosCargados">
+      Cargando catálogos...
+    </div>
+
+    <div class="loading" *ngIf="catalogosCargados && cargandoOferta">
+      Cargando oferta...
+    </div>
+
+    <div class="estado-box" *ngIf="modoEdicion && estadoOferta">
+      Estado actual de la oferta:
+      <strong>{{ estadoOferta }}</strong>
+    </div>
+
+    <div class="upgrade-box" *ngIf="mostrarUpgradeOfertas">
+      <div>
+        <span class="upgrade-label">Límite alcanzado</span>
+        <h3>No puedes crear más ofertas activas con tu plan actual</h3>
+        <p>
+          Finaliza una oferta abierta o mejora a Premium para publicar ofertas activas sin límite.
+        </p>
+      </div>
+
+      <button type="button" class="btn-upgrade" (click)="irSuscripciones()">
+        Ver planes
+      </button>
+    </div>
+
+    <div class="messages" *ngIf="mensajeError">
+      <p class="error">
+        {{ mensajeError }}
+      </p>
+    </div>
+
+    <form
+      *ngIf="catalogosCargados && !cargandoOferta"
+      (ngSubmit)="guardarOferta()"
+      #ofertaForm="ngForm">
+
+      <h2>Información principal</h2>
+
+      <div class="grid">
+
+        <div class="field">
+          <label>Título de la oferta *</label>
+          <input
+            type="text"
+            name="titulo"
+            [(ngModel)]="oferta.titulo"
+            maxlength="50"
+            placeholder="Ejemplo: Ayudante de cocina"
+            required>
+        </div>
+
+        <div class="field">
+          <label>Código interno *</label>
+          <input
+            type="text"
+            name="codigoInterno"
+            [(ngModel)]="oferta.codigoInterno"
+            maxlength="50"
+            placeholder="Ejemplo: COC-001"
+            required>
+        </div>
+
+      </div>
+
+      <div class="field">
+        <label>Descripción *</label>
+        <textarea
+          name="descripcion"
+          rows="4"
+          [(ngModel)]="oferta.descripcion"
+          maxlength="1000"
+          placeholder="Describe brevemente la oferta laboral"
+          required>
+        </textarea>
+      </div>
+
+      <div class="field">
+        <label>Tareas específicas *</label>
+        <textarea
+          name="tareasEspecificas"
+          rows="4"
+          [(ngModel)]="oferta.tareasEspecificas"
+          maxlength="1000"
+          placeholder="Ejemplo: Atender clientes, ordenar productos, apoyar en inventario"
+          required>
+        </textarea>
+      </div>
+
+      <h2>Clasificación de la oferta</h2>
+
+      <div class="grid">
+
+        <div class="field">
+          <label>Categoría *</label>
+          <select
+            name="idCategoria"
+            [(ngModel)]="oferta.idCategoria"
+            required>
+            <option [ngValue]="0">Seleccionar</option>
+            <option *ngFor="let categoria of categorias" [ngValue]="categoria.id">
+              {{ categoria.nombre }}
+            </option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Modalidad *</label>
+          <select
+            name="idMod"
+            [(ngModel)]="oferta.idMod"
+            required>
+            <option [ngValue]="0">Seleccionar</option>
+            <option *ngFor="let modalidad of modalidades" [ngValue]="modalidad.id">
+              {{ modalidad.nombre }}
+            </option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Experiencia requerida *</label>
+          <select
+            name="idExperienciaRequerida"
+            [(ngModel)]="oferta.idExperienciaRequerida"
+            required>
+            <option [ngValue]="0">Seleccionar</option>
+            <option *ngFor="let experiencia of experiencias" [ngValue]="experiencia.id">
+              {{ experiencia.nombre }}
+            </option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Tipo de duración *</label>
+          <select
+            name="idDuracion"
+            [(ngModel)]="oferta.idDuracion"
+            required>
+            <option [ngValue]="0">Seleccionar</option>
+            <option *ngFor="let duracion of tiposDuracion" [ngValue]="duracion.id">
+              {{ duracion.nombre }}
+            </option>
+          </select>
+        </div>
+
+      </div>
+
+      <h2>Ubicación</h2>
+
+      <div class="grid">
+
+        <div class="field">
+          <label>Departamento *</label>
+          <select
+            name="departamento"
+            [(ngModel)]="idDepartamentoSeleccionado"
+            (change)="cambiarDepartamento()"
+            required>
+            <option [ngValue]="0">Seleccionar</option>
+            <option *ngFor="let departamento of departamentos" [ngValue]="departamento.id">
+              {{ departamento.nombre }}
+            </option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Provincia *</label>
+          <select
+            name="provincia"
+            [(ngModel)]="idProvinciaSeleccionada"
+            (change)="cambiarProvincia()"
+            [disabled]="!idDepartamentoSeleccionado"
+            required>
+            <option [ngValue]="0">Seleccionar</option>
+            <option *ngFor="let provincia of provincias" [ngValue]="provincia.id">
+              {{ provincia.nombre }}
+            </option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Distrito *</label>
+          <select
+            name="idDistrito"
+            [(ngModel)]="oferta.idDistrito"
+            [disabled]="!idProvinciaSeleccionada"
+            required>
+            <option [ngValue]="0">Seleccionar</option>
+            <option *ngFor="let distrito of distritos" [ngValue]="distrito.id">
+              {{ distrito.nombre }}
+            </option>
+          </select>
+        </div>
+
+      </div>
+
+      <h2>Duración y pago</h2>
+
+      <div class="grid">
+
+        <div class="field">
+          <label>Cantidad de duración *</label>
+          <input
+            type="number"
+            name="cantidadDuracion"
+            [(ngModel)]="oferta.cantidadDuracion"
+            min="1"
+            placeholder="Ejemplo: 5"
+            required>
+        </div>
+
+        <div class="field">
+          <label>Monto total *</label>
+          <input
+            type="number"
+            name="montoTotal"
+            [(ngModel)]="oferta.montoTotal"
+            min="1"
+            step="0.01"
+            placeholder="Ejemplo: 1200"
+            required>
+        </div>
+
+        <div class="field">
+          <label>Fecha límite de postulación *</label>
+          <input
+            type="date"
+            name="fechaTerminoPostulacion"
+            [(ngModel)]="oferta.fechaTerminoPostulacion"
+            [min]="fechaMinimaPostulacion"
+            required>
+        </div>
+
+      </div>
+
+      <h2>Habilidades requeridas</h2>
+
+      <div class="field search-field">
+        <label>Buscar habilidad</label>
+        <input
+          type="text"
+          name="busquedaHabilidades"
+          [(ngModel)]="busquedaHabilidades"
+          placeholder="Ejemplo: Atención al cliente, Excel, Java">
+      </div>
+
+      <div class="chips">
+        <button
+          type="button"
+          class="chip"
+          *ngFor="let habilidad of habilidadesFiltradas()"
+          [class.active]="estaSeleccionadoNumber(oferta.habilidadesId, habilidad.id)"
+          (click)="cambiarHabilidad(habilidad.id)">
+          {{ habilidad.nombre }}
+        </button>
+      </div>
+
+      <div class="messages">
+        <p class="error" *ngIf="mensajeError">
+          {{ mensajeError }}
+        </p>
+
+        <p class="success" *ngIf="mensajeExito">
+          {{ mensajeExito }}
+        </p>
+      </div>
+
+      <div class="actions">
+
+        <button
+          type="button"
+          class="btn-cancel"
+          [disabled]="cargando"
+          (click)="cancelar()">
+          Volver
+        </button>
+
+        <button
+          type="button"
+          class="btn-danger"
+          *ngIf="puedeGestionarEstado"
+          [disabled]="cargando"
+          (click)="finalizarOferta()">
+          Finalizar oferta
+        </button>
+
+        <button
+          type="submit"
+          [disabled]="cargando || !ofertaForm.valid || mostrarUpgradeOfertas">
+          {{ textoBotonPrincipal }}
+        </button>
+
+      </div>
+
+    </form>
+
+  </section>
+
+</div>

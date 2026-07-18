@@ -1,0 +1,47 @@
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  overflow: visible;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #22c55e, #3b82f6);
+}
+
+.brand-text {
+  font-weight: 900;
+  color: #06152b;
+  letter-spacing: -1px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Tamaño pequeño */
+.brand-logo.sm {
+  padding: 10px 14px;
+  border-radius: 14px;
+
+  .brand-text {
+    font-size: 20px;
+  }
+}
+
+/* Tamaño mediano */
+.brand-logo.md {
+  padding: 13px 18px;
+  border-radius: 18px;
+
+  .brand-text {
+    font-size: 28px;
+  }
+}
+
+/* Tamaño grande */
+.brand-logo.lg {
+  padding: 16px 24px;
+  border-radius: 22px;
+
+  .brand-text {
+    font-size: 38px;
+  }
+}

@@ -1,0 +1,131 @@
+<div class="postulacion-page">
+
+  <div class="postulacion-container">
+
+    <header class="postulacion-header">
+      <div>
+        <h1>Postular a la oferta</h1>
+        <p>
+          Selecciona el CV que deseas enviar para esta postulación.
+        </p>
+      </div>
+
+      <div class="header-actions">
+        <button
+          type="button"
+          class="btn-secondary"
+          (click)="volver()"
+          [disabled]="cargando">
+          Volver a ofertas
+        </button>
+      </div>
+    </header>
+
+    <section class="postulacion-card">
+
+      <div class="card-title">
+        <h2>Enviar postulación</h2>
+        <p>
+          Puedes usar tu CV actual del perfil o subir un CV específico para esta oferta.
+        </p>
+      </div>
+
+      <div class="upgrade-box" *ngIf="mostrarUpgradePostulaciones">
+        <div>
+          <span class="upgrade-label">Límite alcanzado</span>
+          <h3>Ya usaste tus postulaciones disponibles</h3>
+          <p>
+            Tu plan actual tiene un límite mensual de postulaciones. Mejora a Premium para postular sin límite.
+          </p>
+        </div>
+
+        <button type="button" class="btn-upgrade" (click)="irSuscripciones()">
+          Ver planes
+        </button>
+      </div>
+
+      <div class="opciones-cv">
+
+        <label class="opcion-cv">
+          <input
+            type="radio"
+            name="tipoCv"
+            [checked]="usarCvPerfil"
+            (change)="cambiarOpcionCv(true)"
+          />
+
+          <div>
+            <strong>Usar mi CV actual del perfil</strong>
+            <span>Se enviará el CV que tienes guardado en tu perfil.</span>
+          </div>
+        </label>
+
+        <label class="opcion-cv">
+          <input
+            type="radio"
+            name="tipoCv"
+            [checked]="!usarCvPerfil"
+            (change)="cambiarOpcionCv(false)"
+          />
+
+          <div>
+            <strong>Subir otro CV</strong>
+            <span>Recomendado si quieres adaptar tu CV a esta oferta.</span>
+          </div>
+        </label>
+
+      </div>
+
+      <div class="archivo-section" *ngIf="!usarCvPerfil">
+
+        <div class="field">
+          <label for="cv">Selecciona tu CV en PDF</label>
+
+          <input
+            id="cv"
+            type="file"
+            accept="application/pdf"
+            (change)="seleccionarArchivo($event)"
+          />
+        </div>
+
+        <div class="archivo-preview" *ngIf="cvSeleccionado">
+          <span>Archivo seleccionado</span>
+          <strong>{{ cvSeleccionado.name }}</strong>
+        </div>
+
+      </div>
+
+      <div class="mensaje mensaje-error" *ngIf="mensajeError">
+        {{ mensajeError }}
+      </div>
+
+      <div class="mensaje mensaje-exito" *ngIf="mensajeExito">
+        {{ mensajeExito }}
+      </div>
+
+      <div class="postulacion-actions">
+
+        <button
+          type="button"
+          class="btn-secondary"
+          (click)="volver()"
+          [disabled]="cargando">
+          Cancelar
+        </button>
+
+        <button
+          type="button"
+          class="btn-primary"
+          (click)="postular()"
+          [disabled]="cargando || mostrarUpgradePostulaciones">
+          {{ cargando ? 'Enviando...' : 'Postular' }}
+        </button>
+
+      </div>
+
+    </section>
+
+  </div>
+
+</div>

@@ -1,0 +1,83 @@
+<div class="container">
+
+  <!-- IZQUIERDA -->
+  <div class="left">
+    <h1>Crea tu cuenta y empieza hoy</h1>
+    <p>
+      Accede a oportunidades laborales o encuentra el talento que necesitas en una sola plataforma.
+    </p>
+  </div>
+
+  <!-- DERECHA -->
+  <div class="right">
+    <div class="card">
+
+      <h2>Crear cuenta</h2>
+
+      <form (ngSubmit)="register()">
+
+        <input
+          class="input"
+          type="text"
+          placeholder="Nombre completo"
+          [(ngModel)]="nombre"
+          name="nombre"
+          required
+        >
+
+        <input
+          class="input"
+          type="email"
+          placeholder="Correo electrónico"
+          [(ngModel)]="email"
+          name="email"
+          required
+        >
+
+        <input
+          class="input"
+          type="password"
+          placeholder="Crear contraseña"
+          [(ngModel)]="password"
+          name="password"
+          required
+        >
+
+        <input
+          class="input"
+          type="password"
+          placeholder="Confirmar contraseña"
+          [(ngModel)]="confirmPassword"
+          name="confirmPassword"
+          required
+        >
+
+        <select
+          class="input"
+          [(ngModel)]="tipo"
+          name="tipo"
+          required
+        >
+          <option value="">Selecciona tu tipo de cuenta</option>
+          <option value="empleado">Busco trabajo</option>
+          <option value="empleador">Busco talento</option>
+        </select>
+
+        <button class="btn" type="submit" [disabled]="loading">
+          {{ loading ? 'Creando cuenta...' : 'Crear cuenta' }}
+        </button>
+
+        <div class="error" *ngIf="error">
+          {{ error }}
+        </div>
+
+      </form>
+
+      <div class="link">
+        ¿Ya tienes cuenta? <a href="/login">Inicia sesión</a>
+      </div>
+
+    </div>
+  </div>
+
+</div>

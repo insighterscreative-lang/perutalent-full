@@ -1,0 +1,200 @@
+<app-topbar></app-topbar>
+
+<div class="page">
+
+  <section class="card">
+
+    <div class="header">
+      <div>
+        <h1>Crear perfil de empleador</h1>
+        <p>Completa la información de tu empresa, emprendimiento o perfil como empleador.</p>
+      </div>
+    </div>
+
+    <div class="loading" *ngIf="cargandoCatalogos">
+      Cargando catálogos...
+    </div>
+
+    <form
+      *ngIf="!cargandoCatalogos"
+      (ngSubmit)="crearPerfil()"
+      #perfilForm="ngForm">
+
+      <h2>Información del empleador</h2>
+
+      <div class="grid">
+
+        <div class="field">
+          <label>Tipo de empleador *</label>
+          <select
+            name="tipoEmpleador"
+            [(ngModel)]="perfil.tipoEmpleador"
+            (change)="cambiarTipoEmpleador()"
+            required>
+            <option value="">Seleccionar</option>
+            <option *ngFor="let tipo of tiposEmpleador" [value]="tipo">
+              {{ tipo }}
+            </option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Nombre comercial *</label>
+          <input
+            type="text"
+            name="nombreComercial"
+            [(ngModel)]="perfil.nombreComercial"
+            required>
+        </div>
+
+        <div class="field">
+          <label>Razón social / Nombre legal *</label>
+          <input
+            type="text"
+            name="razonSocial"
+            [(ngModel)]="perfil.razonSocial"
+            required>
+        </div>
+
+        <div class="field">
+          <label>Tipo de documento *</label>
+          <select
+            name="tipoDoc"
+            [(ngModel)]="perfil.tipoDoc"
+            (change)="cambiarTipoDocumento()"
+            required>
+            <option value="">Seleccionar</option>
+            <option *ngFor="let tipo of tiposDocumento" [value]="tipo">
+              {{ tipo }}
+            </option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Número de documento *</label>
+          <input
+            type="text"
+            name="numDoc"
+            [(ngModel)]="perfil.numDoc"
+            [maxlength]="obtenerMaxLengthDocumento()"
+            [placeholder]="obtenerPlaceholderDocumento()"
+            required>
+        </div>
+
+        <div class="field">
+          <label>Años de operación *</label>
+          <input
+            type="number"
+            name="aniosOperacion"
+            min="0"
+            [(ngModel)]="perfil.aniosOperacion"
+            required>
+        </div>
+
+      </div>
+
+      <h2>Descripción</h2>
+
+      <div class="field">
+        <label>Descripción del negocio</label>
+        <textarea
+          name="descripcionNegocio"
+          rows="4"
+          [(ngModel)]="perfil.descripcionNegocio"
+          placeholder="Describe brevemente tu empresa, negocio o actividad como empleador">
+        </textarea>
+      </div>
+
+      <div class="field">
+        <label>URL de logo</label>
+        <input
+          type="text"
+          name="logoEmpleador"
+          [(ngModel)]="perfil.logoEmpleador"
+          placeholder="Ejemplo: https://.../logo.png">
+      </div>
+
+      <h2>Información de contacto opcional</h2>
+
+      <p class="hint">
+        Puedes agregar un enlace externo de tu empresa o emprendimiento. Si no cuentas con una página web,
+        puedes dejar un correo o número de contacto para que los postulantes puedan comunicarse contigo.
+      </p>
+
+      <div class="grid">
+
+        <div class="field">
+          <label>Sitio web o enlace externo</label>
+          <input
+            type="text"
+            name="sitioWeb"
+            [(ngModel)]="perfil.sitioWeb"
+            placeholder="Ejemplo: https://miempresa.com">
+        </div>
+
+        <div class="field">
+          <label>Correo de contacto</label>
+          <input
+            type="email"
+            name="correoContacto"
+            [(ngModel)]="perfil.correoContacto"
+            placeholder="Ejemplo: contacto@empresa.com">
+        </div>
+
+        <div class="field">
+          <label>Teléfono de contacto</label>
+          <input
+            type="text"
+            name="telefonoContacto"
+            [(ngModel)]="perfil.telefonoContacto"
+            placeholder="Ejemplo: 999888777">
+        </div>
+
+      </div>
+
+      <h2>Categorías de contratación</h2>
+
+      <div class="field search-field">
+        <label>Buscar categoría</label>
+        <input
+          type="text"
+          name="busquedaCategorias"
+          [(ngModel)]="busquedaCategorias"
+          placeholder="Ejemplo: tecnología, marketing, diseño">
+      </div>
+
+      <div class="chips">
+        <button
+          type="button"
+          class="chip"
+          *ngFor="let categoria of categoriasFiltradas()"
+          [class.active]="estaSeleccionadoNumber(perfil.categoriasId, categoria.id)"
+          (click)="cambiarCategoria(categoria.id)">
+          {{ categoria.nombre }}
+        </button>
+      </div>
+
+      <div class="messages">
+        <p class="error" *ngIf="mensajeError">
+          {{ mensajeError }}
+        </p>
+
+        <p class="success" *ngIf="mensajeExito">
+          {{ mensajeExito }}
+        </p>
+      </div>
+
+      <div class="actions">
+        <button
+          type="submit"
+          class="btn-primary"
+          [disabled]="cargando">
+          {{ cargando ? 'Guardando...' : 'Crear perfil' }}
+        </button>
+      </div>
+
+    </form>
+
+  </section>
+
+</div>

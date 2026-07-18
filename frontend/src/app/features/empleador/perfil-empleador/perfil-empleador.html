@@ -1,0 +1,328 @@
+<app-topbar></app-topbar>
+
+<div class="page">
+
+  <div class="container">
+
+    <div class="profile-actions" *ngIf="perfil">
+
+      <button
+        class="btn btn-primary"
+        type="button"
+        routerLink="/empleador/ofertas/crear">
+        Crear oferta
+      </button>
+
+      <button
+        class="btn btn-secondary"
+        type="button"
+        (click)="verMisOfertas()">
+        Mis ofertas
+      </button>
+
+      <button
+        class="btn btn-secondary"
+        type="button"
+        (click)="editarPerfil()">
+        Editar perfil
+      </button>
+
+      <button
+        class="btn btn-primary"
+        type="button"
+        *ngIf="perfil.sitioWeb"
+        (click)="visitarSitioWeb()">
+        Visitar sitio web
+      </button>
+
+    </div>
+
+    <div class="loading" *ngIf="cargando">
+      Cargando perfil de empleador...
+    </div>
+
+    <div class="error-box" *ngIf="!cargando && mensajeError">
+      {{ mensajeError }}
+    </div>
+
+    <ng-container *ngIf="!cargando && perfil">
+
+      <div class="profile-top">
+
+        <div class="card profile-card">
+
+          <div class="company-logo" *ngIf="!perfil.logoEmpleador">
+            {{ obtenerIniciales() }}
+          </div>
+
+          <img
+            *ngIf="perfil.logoEmpleador"
+            class="company-logo-img"
+            [src]="perfil.logoEmpleador"
+            alt="Logo del empleador"
+          >
+
+          <div class="name">
+            {{ perfil.nombreComercial }}
+          </div>
+
+          <div class="role">
+            {{ perfil.tipoEmpleador }}
+            <span *ngIf="perfil.categorias && perfil.categorias.length">
+              · {{ perfil.categorias.join(' · ') }}
+            </span>
+          </div>
+
+          <div class="tag-list">
+
+            <div class="tag">
+              {{ perfil.tipoEmpleador }}
+            </div>
+
+            <div class="tag" *ngIf="perfil.modalidadesContratacion && perfil.modalidadesContratacion.length">
+              Contrata {{ perfil.modalidadesContratacion.join(', ') }}
+            </div>
+
+            <div class="tag" *ngIf="perfil.sitioWeb">
+              Sitio web disponible
+            </div>
+
+          </div>
+
+          <div class="stats">
+
+            <div class="stat">
+              <h3>{{ perfil.trabajosFinalizados }}</h3>
+              <p>Trabajos realizados</p>
+            </div>
+
+            <div class="stat">
+              <h3>{{ perfil.trabajosActivos }}</h3>
+              <p>Trabajos activos</p>
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="card">
+
+          <div class="section-title">
+            Información del empleador
+          </div>
+
+          <div class="info-grid">
+
+            <div class="info-item">
+              <span>Tipo de empleador</span>
+              <strong>{{ perfil.tipoEmpleador }}</strong>
+            </div>
+
+            <div class="info-item">
+              <span>Nombre comercial</span>
+              <strong>{{ perfil.nombreComercial }}</strong>
+            </div>
+
+            <div class="info-item">
+              <span>Razón social / Nombre legal</span>
+              <strong>{{ perfil.razonSocial }}</strong>
+            </div>
+
+            <div class="info-item">
+              <span>Tipo de documento</span>
+              <strong>{{ perfil.tipoDoc }}</strong>
+            </div>
+
+            <div class="info-item">
+              <span>Número de documento</span>
+              <strong>{{ perfil.numDoc }}</strong>
+            </div>
+
+            <div class="info-item">
+              <span>Años de operación</span>
+              <strong>{{ perfil.aniosOperacion }} años</strong>
+            </div>
+
+            <div class="info-item">
+              <span>Correo de cuenta</span>
+              <strong>{{ perfil.correo }}</strong>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="sections">
+
+        <div>
+
+          <div class="card">
+
+            <div class="section-title">
+              Descripción del negocio
+            </div>
+
+            <p class="description">
+              {{ perfil.descripcionNegocio || 'Este empleador aún no agregó una descripción del negocio.' }}
+            </p>
+
+          </div>
+
+          <div class="card mt" *ngIf="perfil.categorias && perfil.categorias.length">
+
+            <div class="section-title">
+              Categorías de contratación
+            </div>
+
+            <div class="tag-list">
+              <div class="tag" *ngFor="let categoria of perfil.categorias">
+                {{ categoria }}
+              </div>
+            </div>
+
+          </div>
+
+          <div class="card mt" *ngIf="perfil.modalidadesContratacion && perfil.modalidadesContratacion.length">
+
+            <div class="section-title">
+              Modalidades de contratación
+            </div>
+
+            <div class="tag-list">
+              <div class="tag" *ngFor="let modalidad of perfil.modalidadesContratacion">
+                {{ modalidad }}
+              </div>
+            </div>
+
+          </div>
+
+          <div class="card mt" *ngIf="tieneContactoOpcional()">
+
+            <div class="section-title">
+              Contacto externo
+            </div>
+
+            <p class="description">
+              Esta información fue proporcionada por el empleador para facilitar el contacto externo.
+            </p>
+
+            <div class="contact-list">
+
+              <div class="info-item" *ngIf="perfil.sitioWeb">
+                <span>Sitio web o enlace externo</span>
+                <strong>{{ perfil.sitioWeb }}</strong>
+              </div>
+
+              <div class="info-item" *ngIf="perfil.correoContacto">
+                <span>Correo de contacto</span>
+                <strong>{{ perfil.correoContacto }}</strong>
+              </div>
+
+              <div class="info-item" *ngIf="perfil.telefonoContacto">
+                <span>Teléfono de contacto</span>
+                <strong>{{ perfil.telefonoContacto }}</strong>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="card">
+
+          <div class="tabs">
+
+            <button
+              type="button"
+              class="tab"
+              [class.active]="tabActiva === 'finalizados'"
+              (click)="cambiarTab('finalizados')">
+              Trabajos realizados
+            </button>
+
+            <button
+              type="button"
+              class="tab"
+              [class.active]="tabActiva === 'activos'"
+              (click)="cambiarTab('activos')">
+              Trabajos activos
+            </button>
+
+          </div>
+
+          <div class="job-list" *ngIf="tabActiva === 'finalizados'">
+
+            <div class="empty" *ngIf="!perfil.trabajosFinalizadosDetalle || !perfil.trabajosFinalizadosDetalle.length">
+              Este empleador aún no tiene trabajos finalizados.
+            </div>
+
+            <div class="job-item" *ngFor="let trabajo of perfil.trabajosFinalizadosDetalle">
+
+              <h4>{{ trabajo.titulo }}</h4>
+
+              <p>{{ trabajo.descripcion }}</p>
+
+              <div class="job-meta">
+
+                <div class="badge" *ngIf="trabajo.categoria">
+                  {{ trabajo.categoria }}
+                </div>
+
+                <div class="badge" *ngIf="trabajo.modalidad">
+                  {{ trabajo.modalidad }}
+                </div>
+
+                <div class="badge">
+                  {{ trabajo.estadoOferta }}
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <div class="job-list" *ngIf="tabActiva === 'activos'">
+
+            <div class="empty" *ngIf="!perfil.trabajosActivosDetalle || !perfil.trabajosActivosDetalle.length">
+              Este empleador no tiene trabajos activos actualmente.
+            </div>
+
+            <div class="job-item active-job" *ngFor="let trabajo of perfil.trabajosActivosDetalle">
+
+              <h4>{{ trabajo.titulo }}</h4>
+
+              <p>{{ trabajo.descripcion }}</p>
+
+              <div class="job-meta">
+
+                <div class="badge" *ngIf="trabajo.categoria">
+                  {{ trabajo.categoria }}
+                </div>
+
+                <div class="badge" *ngIf="trabajo.modalidad">
+                  {{ trabajo.modalidad }}
+                </div>
+
+                <div class="badge">
+                  {{ trabajo.estadoOferta }}
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </ng-container>
+
+  </div>
+
+</div>

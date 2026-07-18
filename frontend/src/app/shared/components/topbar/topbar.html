@@ -1,0 +1,55 @@
+<header class="topbar">
+
+  <div class="topbar-left">
+    <app-logo size="sm"></app-logo>
+  </div>
+
+  <div class="topbar-right">
+
+    <div class="user-menu">
+
+      <button
+        type="button"
+        class="user-button"
+        (click)="toggleMenu()">
+
+        <span class="user-icon">
+          👤
+        </span>
+
+        <span class="chevron">
+          ▾
+        </span>
+
+      </button>
+
+      <div class="dropdown" *ngIf="menuAbierto">
+
+        <button
+          type="button"
+          class="dropdown-item"
+          (click)="irEditarCuenta()">
+          Editar cuenta
+        </button>
+
+        <button
+          type="button"
+          class="dropdown-item"
+          (click)="irSuscripciones()">
+          Suscripciones
+        </button>
+
+        <button
+          type="button"
+          class="dropdown-item danger"
+          (click)="cerrarSesion()">
+          Cerrar sesión
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</header>
