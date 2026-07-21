@@ -112,15 +112,43 @@ public class CulqiService {
 
         Object object = respuesta.get("object");
         Object id = respuesta.get("id");
+
+        boolean esCargo = object != null
+                && object.toString().equalsIgnoreCase("charge");
+
+        boolean tieneId = id != null
+                && id.toString().startsWith("chr_");
+
+        boolean aprobadoPorOutcome = false;
+
+        Object outcomeObject = respuesta.get("outcome");
+        if (outcomeObject instanceof Map<?, ?> outcome) {
+            Object type = outcome.get("type");
+            Object code = outcome.get("code");
+
+            boolean ventaExitosa = type != null
+                    && type.toString().equalsIgnoreCase("venta_exitosa");
+
+            boolean autorizado = code != null
+                    && code.toString().equalsIgnoreCase("AUT0000");
+
+            aprobadoPorOutcome = ventaExitosa || autorizado;
+        }
+
         Object responseCode = respuesta.get("response_code");
         Object state = respuesta.get("state");
 
-        boolean esCargo = object != null && object.toString().equalsIgnoreCase("charge");
-        boolean tieneId = id != null && id.toString().startsWith("chr_");
-        boolean ventaExitosa = responseCode != null && responseCode.toString().equalsIgnoreCase("venta_exitosa");
-        boolean estadoExitoso = state != null && state.toString().equalsIgnoreCase("Exitosa");
+        boolean aprobadoPorResponseCode = responseCode != null
+                && responseCode.toString().equalsIgnoreCase("venta_exitosa");
 
-        return esCargo && tieneId && (ventaExitosa || estadoExitoso);
+        boolean aprobadoPorState = state != null
+                && state.toString().equalsIgnoreCase("Exitosa");
+
+        return esCargo && tieneId && (
+                aprobadoPorOutcome ||
+                aprobadoPorResponseCode ||
+                aprobadoPorState
+        );
     }
 
     public String obtenerChargeId(Map<String, Object> respuesta) {
