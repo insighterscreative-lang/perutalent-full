@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://perutalent.onrender.com/'
+  apiUrl: 'https://perutalent-full-api.onrender.com/'
 };
