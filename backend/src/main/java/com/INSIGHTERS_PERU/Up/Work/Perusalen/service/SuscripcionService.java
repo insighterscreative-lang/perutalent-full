@@ -69,12 +69,9 @@ public class SuscripcionService {
         PlanSuscripcion planNuevo = planSuscripcionRepository.findByIdAndActivoTrue(idPlan)
                 .orElseThrow(() -> new RuntimeException("El plan seleccionado no existe o no está activo."));
 
-        /*
-         Descomentas esto si quieres usar el culqui real y lo comentas si es que lo quieres probar sin el culqui
-         if (PLAN_PREMIUM.equalsIgnoreCase(planNuevo.getNombrePlan())) {
-         throw new RuntimeException("Para activar Premium debes completar el pago con Culqi.");
-         }
-         */
+        if (PLAN_PREMIUM.equalsIgnoreCase(planNuevo.getNombrePlan())) {
+            throw new RuntimeException("Para activar Premium debes completar el pago con Culqi.");
+        }
 
         return actualizarSuscripcionUsuario(usuario, planNuevo);
     }

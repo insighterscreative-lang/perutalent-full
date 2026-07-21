@@ -62,21 +62,7 @@ export class SuscripcionesComponent implements OnInit {
         this.planes = planes || [];
 
         if (this.autenticado) {
-          /*
-           * ================================================================
-           * MODO VIDEO / DEMO ACTIVO
-           * ================================================================
-           * Para el video no necesitamos cargar Culqi. El botón Premium
-           * activará el plan directamente usando /suscripciones/cambiar-plan.
-           *
-           * Cuando tu amigo quiera probar Culqi real, debe descomentar:
-           * this.cargarConfigCulqi();
-           */
-
-          /*
           this.cargarConfigCulqi();
-          */
-
           this.cargarMiSuscripcion();
         } else {
           this.cargando = false;
@@ -153,14 +139,8 @@ export class SuscripcionesComponent implements OnInit {
     this.mensajeExito = '';
 
     if (this.esPremium(plan)) {
-
-      this.cambiarPlanPremiumDemo(plan); /*Comentar esta linea y la siguiente para activar Culqi real y descomentas las que estan comentadas*/
+      this.iniciarPagoPremium(plan);
       return;
-
-      /*
-       * this.iniciarPagoPremium(plan);
-       * return;
-       */
     }
 
     this.cambiarPlanGratuito(plan);
@@ -179,43 +159,13 @@ export class SuscripcionesComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error cambiando plan:', error);
+
         this.mensajeError =
           error?.error?.message ||
           error?.error?.mensaje ||
           error?.error?.error ||
           'No se pudo cambiar el plan seleccionado.';
 
-        this.cambiandoPlan = false;
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-  cambiarPlanPremiumDemo(plan: PlanSuscripcion): void {
-    this.cambiandoPlan = true;
-    this.pagandoPremium = false;
-    this.planPendientePago = undefined;
-    this.mensajeError = '';
-    this.mensajeExito = 'Activando Premium para la demostración...';
-    this.cdr.detectChanges();
-
-    this.suscripcionService.cambiarPlan(plan.id).subscribe({
-      next: (suscripcion) => {
-        this.miSuscripcion = suscripcion;
-        this.mensajeExito = 'Premium activado para la demostración. Ya puedes mostrar las funciones del plan Premium.';
-        this.cambiandoPlan = false;
-        this.cargarMiUso();
-        this.cdr.detectChanges();
-      },
-      error: (error) => {
-        console.error('Error activando Premium demo:', error);
-        this.mensajeError =
-          error?.error?.message ||
-          error?.error?.mensaje ||
-          error?.error?.error ||
-          'No se pudo activar Premium para la demostración.';
-
-        this.mensajeExito = '';
         this.cambiandoPlan = false;
         this.cdr.detectChanges();
       }
@@ -480,7 +430,7 @@ export class SuscripcionesComponent implements OnInit {
     }
 
     if (this.esPremium(plan)) {
-      return 'Conseguir Premium';
+      return 'Pagar Premium';
     }
 
     return 'Elegir plan';
