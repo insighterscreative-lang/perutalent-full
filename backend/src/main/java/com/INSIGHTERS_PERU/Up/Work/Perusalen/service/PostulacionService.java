@@ -42,7 +42,7 @@ public class PostulacionService {
     private final EmpleadoHabilidadRepository empleadoHabilidadRepository;
     private final EmpleadoHerramientaRepository empleadoHerramientaRepository;
 
-    private final FileStorageService fileStorageService;
+    private final S3StorageService s3StorageService;
     private final EmailService emailService;
     private final SuscripcionService suscripcionService;
 
@@ -85,7 +85,7 @@ public class PostulacionService {
                 throw new RuntimeException("Debes adjuntar un CV para postular");
             }
 
-            cvUrl = fileStorageService.guardarCvPostulacion(cv);
+            cvUrl = s3StorageService.subirCvPostulacion(cv, idUsuario, idOferta);
         }
 
         Postulacion postulacion = new Postulacion();
@@ -243,6 +243,30 @@ public class PostulacionService {
     public Postulacion obtenerPostulacionPorId(Long idPostulacion) {
         return postulacionRepository.findById(idPostulacion)
                 .orElseThrow(() -> new RuntimeException("Postulación no encontrada"));
+    }
+
+    @Transactional(readOnly = true)
+    public Postulacion obtenerPostulacionPorIdAutorizada(
+            Long idPostulacion,
+            Long idUsuario
+    ) {
+        Postulacion postulacion = postulacionRepository.findById(idPostulacion)
+                .orElseThrow(() -> new RuntimeException("Postulación no encontrada"));
+
+        boolean esEmpleadoPostulante = postulacion.getIdEmpleado() != null
+                && postulacion.getIdEmpleado().getUsuario() != null
+                && postulacion.getIdEmpleado().getUsuario().getId().equals(idUsuario);
+
+        boolean esEmpleadorDeLaOferta = postulacion.getIdOferta() != null
+                && postulacion.getIdOferta().getIdEmpleador() != null
+                && postulacion.getIdOferta().getIdEmpleador().getUsuario() != null
+                && postulacion.getIdOferta().getIdEmpleador().getUsuario().getId().equals(idUsuario);
+
+        if (!esEmpleadoPostulante && !esEmpleadorDeLaOferta) {
+            throw new RuntimeException("No tienes permiso para ver el CV de esta postulación");
+        }
+
+        return postulacion;
     }
 
     private PostulacionResponseDTO mapToPostulacionResponseDTO(Postulacion postulacion) {

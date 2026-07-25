@@ -83,10 +83,36 @@ export class PerfilEmpleadoComponent implements OnInit {
 
   descargarCV(): void {
     if (!this.perfil?.curriculum) {
+      this.mensajeError = 'No tienes un CV cargado en tu perfil.';
       return;
     }
 
-    window.open(this.perfil.curriculum, '_blank');
+    if (this.esUrlPublica(this.perfil.curriculum)) {
+      window.open(this.perfil.curriculum, '_blank');
+      return;
+    }
+
+    this.empleadoService.descargarCvPerfil().subscribe({
+      next: (archivo) => {
+        const blob = new Blob([archivo], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+
+        window.open(url, '_blank');
+
+        setTimeout(() => {
+          window.URL.revokeObjectURL(url);
+        }, 60000);
+      },
+      error: (error) => {
+        console.error('Error al descargar CV:', error);
+        this.mensajeError = error?.error?.message || 'No se pudo descargar el CV';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  private esUrlPublica(valor: string): boolean {
+    return /^https?:\/\//i.test(valor.trim());
   }
 
   obtenerIniciales(): string {

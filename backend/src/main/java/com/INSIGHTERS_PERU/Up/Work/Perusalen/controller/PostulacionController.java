@@ -2,7 +2,7 @@ package com.INSIGHTERS_PERU.Up.Work.Perusalen.controller;
 
 import java.util.List;
 
-import org.springframework.core.io.Resource;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -15,12 +15,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.PostulacionResponseDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.response.ApiResponse;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.security.JwtUtil;
-import com.INSIGHTERS_PERU.Up.Work.Perusalen.service.FileStorageService;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.service.PostulacionService;
+import com.INSIGHTERS_PERU.Up.Work.Perusalen.service.S3StorageService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
@@ -31,7 +33,7 @@ import lombok.AllArgsConstructor;
 public class PostulacionController {
 
     private final PostulacionService postulacionService;
-    private final FileStorageService fileStorageService;
+    private final S3StorageService s3StorageService;
     private final JwtUtil jwtUtil;
 
     @PostMapping(
@@ -126,20 +128,46 @@ public class PostulacionController {
     }
 
     @GetMapping("/{idPostulacion}/cv")
-    public ResponseEntity<Resource> verCvPostulacion(
-            @PathVariable Long idPostulacion
+    public ResponseEntity<?> verCvPostulacion(
+            @PathVariable Long idPostulacion,
+            HttpServletRequest request
     ) {
-        var postulacion = postulacionService.obtenerPostulacionPorId(idPostulacion);
+        Long idUsuario = jwtUtil.getIdFromRequest(request);
+
+        var postulacion = postulacionService.obtenerPostulacionPorIdAutorizada(
+                idPostulacion,
+                idUsuario
+        );
 
         if (postulacion.getCvUrl() == null || postulacion.getCvUrl().isBlank()) {
             throw new RuntimeException("Esta postulación no tiene CV registrado");
         }
 
-        Resource archivo = fileStorageService.cargarArchivo(postulacion.getCvUrl());
+        if (s3StorageService.esUrlPublica(postulacion.getCvUrl())) {
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header(HttpHeaders.LOCATION, postulacion.getCvUrl())
+                    .build();
+        }
 
-        return ResponseEntity.ok()
+        ResponseInputStream<GetObjectResponse> archivoS3 =
+                s3StorageService.descargarArchivo(postulacion.getCvUrl());
+
+        GetObjectResponse respuestaS3 = archivoS3.response();
+
+        String contentType = respuestaS3.contentType() != null
+                ? respuestaS3.contentType()
+                : MediaType.APPLICATION_PDF_VALUE;
+
+        Long contentLength = respuestaS3.contentLength();
+
+        ResponseEntity.BodyBuilder responseBuilder = ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"cv.pdf\"")
-                .contentType(MediaType.APPLICATION_PDF)
-                .body(archivo);
+                .contentType(MediaType.parseMediaType(contentType));
+
+        if (contentLength != null && contentLength > 0) {
+            responseBuilder.contentLength(contentLength);
+        }
+
+        return responseBuilder.body(new InputStreamResource(archivoS3));
     }
 }

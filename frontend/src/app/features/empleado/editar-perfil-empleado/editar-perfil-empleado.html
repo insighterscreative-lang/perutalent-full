@@ -179,13 +179,34 @@
 
       <div class="grid">
 
-        <div class="field">
-          <label>URL de curriculum</label>
+        <div class="field file-field">
+          <label>Currículum vitae PDF</label>
+
+          <div class="current-file" *ngIf="perfil.curriculum && !nombreCvSeleccionado">
+            Ya tienes un CV guardado. Selecciona un nuevo PDF solo si deseas reemplazarlo.
+          </div>
+
           <input
-            type="text"
-            name="curriculum"
-            [(ngModel)]="perfil.curriculum"
-            placeholder="Ejemplo: https://.../cv.pdf">
+            #cvInput
+            type="file"
+            name="cvPerfil"
+            accept="application/pdf"
+            (change)="onCvSeleccionado($event)">
+
+          <small class="file-hint">
+            Solo se permite PDF. Máximo 5 MB.
+          </small>
+
+          <div class="file-status" *ngIf="nombreCvSeleccionado">
+            <span>Nuevo archivo seleccionado: {{ nombreCvSeleccionado }}</span>
+
+            <button
+              type="button"
+              class="file-clear"
+              (click)="quitarCvSeleccionado(); cvInput.value = ''">
+              Quitar
+            </button>
+          </div>
         </div>
 
         <div class="field">

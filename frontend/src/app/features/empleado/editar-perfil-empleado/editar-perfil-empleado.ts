@@ -24,6 +24,9 @@ export class EditarPerfilEmpleadoComponent implements OnInit {
   mensajeError = '';
   mensajeExito = '';
 
+  cvSeleccionado: File | null = null;
+  nombreCvSeleccionado = '';
+
   fechaMaximaNacimiento: string = this.calcularFechaMaximaNacimiento();
 
   idDepartamentoSeleccionado = 0;
@@ -351,7 +354,7 @@ export class EditarPerfilEmpleadoComponent implements OnInit {
 
     this.guardando = true;
 
-    this.empleadoService.editarPerfil(this.perfil).subscribe({
+    this.empleadoService.editarPerfil(this.perfil, this.cvSeleccionado).subscribe({
       next: () => {
         this.guardando = false;
         this.mensajeExito = 'Perfil actualizado exitosamente';
@@ -368,6 +371,52 @@ export class EditarPerfilEmpleadoComponent implements OnInit {
         this.cdr.detectChanges();
       }
     });
+  }
+
+
+  onCvSeleccionado(event: Event): void {
+    this.mensajeError = '';
+
+    const input = event.target as HTMLInputElement;
+    const archivo = input.files?.[0] ?? null;
+
+    if (!archivo) {
+      this.cvSeleccionado = null;
+      this.nombreCvSeleccionado = '';
+      return;
+    }
+
+    const esPdf = archivo.type === 'application/pdf'
+      || archivo.name.toLowerCase().endsWith('.pdf');
+
+    if (!esPdf) {
+      this.cvSeleccionado = null;
+      this.nombreCvSeleccionado = '';
+      this.mensajeError = 'El CV debe ser un archivo PDF';
+      input.value = '';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const maxSizeBytes = 5 * 1024 * 1024;
+
+    if (archivo.size > maxSizeBytes) {
+      this.cvSeleccionado = null;
+      this.nombreCvSeleccionado = '';
+      this.mensajeError = 'El CV no debe superar los 5 MB';
+      input.value = '';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.cvSeleccionado = archivo;
+    this.nombreCvSeleccionado = archivo.name;
+    this.cdr.detectChanges();
+  }
+
+  quitarCvSeleccionado(): void {
+    this.cvSeleccionado = null;
+    this.nombreCvSeleccionado = '';
   }
 
   cancelar(): void {

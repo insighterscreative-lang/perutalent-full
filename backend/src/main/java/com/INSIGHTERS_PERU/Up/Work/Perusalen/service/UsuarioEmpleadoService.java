@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.UsuarioEmpleadoRequestDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.UsuarioEmpleadoResponseDTO;
@@ -68,8 +69,10 @@ public class UsuarioEmpleadoService {
 
     private final OfertaLaboralRepository ofertaLaboralRepository;
 
+    private final S3StorageService s3StorageService;
+
     @Transactional
-    public void crearPerfil(UsuarioEmpleadoRequestDTO dto, Long idUsuario) {
+    public void crearPerfil(UsuarioEmpleadoRequestDTO dto, Long idUsuario, MultipartFile cv) {
 
         normalizarDto(dto);
         validarDatosPerfil(dto);
@@ -99,6 +102,11 @@ public class UsuarioEmpleadoService {
         empleado.setUsuario(usuario);
         empleado.setDistrito(distrito);
 
+        if (cv != null && !cv.isEmpty()) {
+            String cvKey = s3StorageService.subirCvPerfil(cv, idUsuario);
+            empleado.setCurriculum(cvKey);
+        }
+
         UsuarioEmpleado empleadoGuardado = usuarioEmpleadoRepository.save(empleado);
 
         guardarHabilidades(empleadoGuardado, dto.getHabilidadesId());
@@ -124,8 +132,17 @@ public class UsuarioEmpleadoService {
         return response;
     }
 
+    @Transactional(readOnly = true)
+    public UsuarioEmpleado obtenerPerfilEntidad(Long idUsuario) {
+
+        return usuarioEmpleadoRepository
+                .findByUsuarioId(idUsuario)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Perfil de empleado no encontrado"));
+    }
+
     @Transactional
-    public void editarPerfil(UsuarioEmpleadoRequestDTO dto, Long idUsuario) {
+    public void editarPerfil(UsuarioEmpleadoRequestDTO dto, Long idUsuario, MultipartFile cv) {
 
         normalizarDto(dto);
         validarDatosPerfil(dto);
@@ -152,10 +169,27 @@ public class UsuarioEmpleadoService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Distrito no encontrado"));
 
+        String curriculumAnterior = empleado.getCurriculum();
+        String nuevoCurriculum = null;
+
+        if (cv != null && !cv.isEmpty()) {
+            nuevoCurriculum = s3StorageService.subirCvPerfil(cv, idUsuario);
+        }
+
         usuarioEmpleadoMapper.updateEntity(empleado, dto);
         empleado.setDistrito(distrito);
 
+        if (nuevoCurriculum != null) {
+            empleado.setCurriculum(nuevoCurriculum);
+        } else {
+            empleado.setCurriculum(curriculumAnterior);
+        }
+
         usuarioEmpleadoRepository.save(empleado);
+
+        if (nuevoCurriculum != null) {
+            eliminarCvAnteriorSiCorresponde(curriculumAnterior);
+        }
 
         empleadoHabilidadRepository.deleteByEmpleadoId(empleado.getId());
         empleadoCategoriaRepository.deleteByEmpleadoId(empleado.getId());
@@ -166,6 +200,18 @@ public class UsuarioEmpleadoService {
         guardarCategorias(empleado, dto.getCategoriasId());
         guardarHerramientas(empleado, dto.getHerramientasId());
         guardarModalidades(empleado, dto.getModalidadesId());
+    }
+
+    private void eliminarCvAnteriorSiCorresponde(String curriculumAnterior) {
+        if (curriculumAnterior == null || curriculumAnterior.isBlank()) {
+            return;
+        }
+
+        try {
+            s3StorageService.eliminarArchivo(curriculumAnterior);
+        } catch (Exception e) {
+            System.out.println("No se pudo eliminar el CV anterior del perfil: " + e.getMessage());
+        }
     }
 
     private void validarDatosPerfil(UsuarioEmpleadoRequestDTO dto) {
