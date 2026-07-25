@@ -1,0 +1,141 @@
+<app-topbar></app-topbar>
+
+<main class="legal-page">
+  <section class="legal-hero">
+    <span class="legal-badge">Atención al usuario</span>
+
+    <h1>Libro de Reclamaciones</h1>
+
+    <p>
+      Este formulario permite registrar de manera referencial una queja o reclamo
+      relacionado con el uso de PeruTalent. Para esta versión MVP, el registro
+      funciona como canal informativo de contacto integrado dentro de la plataforma.
+    </p>
+  </section>
+
+  <section class="legal-card">
+    <div class="claim-header">
+      <div>
+        <h2>Registrar reclamo o queja</h2>
+        <p>
+          Completa la siguiente información para que el equipo de PeruTalent pueda
+          revisar tu caso. La información enviada debe ser clara, veraz y relacionada
+          con el uso de la plataforma.
+        </p>
+      </div>
+
+      <span class="claim-code">
+        Hoja de reclamación digital
+      </span>
+    </div>
+
+    <form class="claims-form" (ngSubmit)="enviarReclamo()">
+
+      <h3>1. Datos del consumidor</h3>
+
+      <div class="form-grid">
+        <label>
+          Nombre completo
+          <input type="text" name="nombre" placeholder="Ej. Juan Pérez" required>
+        </label>
+
+        <label>
+          Correo electrónico
+          <input type="email" name="email" placeholder="correo@ejemplo.com" required>
+        </label>
+
+        <label>
+          Teléfono
+          <input type="tel" name="telefono" placeholder="+51 999 999 999">
+        </label>
+
+        <label>
+          Documento de identidad
+          <input type="text" name="documento" placeholder="DNI, CE u otro documento">
+        </label>
+      </div>
+
+      <h3>2. Identificación del servicio contratado</h3>
+
+      <div class="form-grid">
+        <label>
+          Servicio relacionado
+          <select name="servicio" required>
+            <option value="">Selecciona una opción</option>
+            <option value="plan">Plan o suscripción</option>
+            <option value="postulacion">Postulación laboral</option>
+            <option value="oferta">Publicación de oferta</option>
+            <option value="cuenta">Cuenta de usuario</option>
+            <option value="otro">Otro</option>
+          </select>
+        </label>
+
+        <label>
+          Monto reclamado, si aplica
+          <input type="text" name="monto" placeholder="Ej. S/ 19.90">
+        </label>
+      </div>
+
+      <h3>3. Detalle de la solicitud</h3>
+
+      <div class="form-grid">
+        <label>
+          Tipo de solicitud
+          <select name="tipo" required>
+            <option value="">Selecciona una opción</option>
+            <option value="reclamo">Reclamo</option>
+            <option value="queja">Queja</option>
+          </select>
+        </label>
+
+        <label>
+          Asunto
+          <input type="text" name="asunto" placeholder="Describe brevemente el motivo" required>
+        </label>
+      </div>
+
+      <label>
+        Detalle del reclamo o queja
+        <textarea
+          name="detalle"
+          rows="6"
+          placeholder="Explica el caso con el mayor detalle posible"
+          required>
+        </textarea>
+      </label>
+
+      <label>
+        Pedido del consumidor
+        <textarea
+          name="pedido"
+          rows="4"
+          placeholder="Indica qué solución solicitas"
+          required>
+        </textarea>
+      </label>
+
+      <div class="claims-note">
+        <strong>Nota:</strong>
+        La presentación de un reclamo no impide acudir a otros mecanismos de
+        solución de controversias ni limita los derechos del consumidor.
+      </div>
+
+      <div class="form-actions">
+        <button type="submit">
+          Enviar solicitud
+        </button>
+      </div>
+
+      <div class="success-message" *ngIf="enviado">
+        Tu solicitud fue registrada de forma referencial. Para seguimiento, también
+        puedes escribir a contacto@perutalent.com.
+      </div>
+    </form>
+
+    <p class="legal-note">
+      Nota para MVP: este formulario está integrado dentro de la web. Antes de
+      producción final, se recomienda conectarlo al backend para guardar el reclamo
+      en base de datos o enviarlo al correo de soporte.
+    </p>
+  </section>
+</main>

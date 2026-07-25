@@ -25,6 +25,11 @@ import { PostulantesOfertaComponent } from './features/postulaciones/postulantes
 
 import { SuscripcionesComponent } from './features/suscripciones/suscripciones/suscripciones';
 
+import { TerminosCondicionesComponent } from './features/legal/terminos-condiciones/terminos-condiciones';
+import { PoliticaPrivacidadComponent } from './features/legal/politica-privacidad/politica-privacidad';
+import { PoliticaDevolucionesComponent } from './features/legal/politica-devoluciones/politica-devoluciones';
+import { LibroReclamacionesComponent } from './features/legal/libro-reclamaciones/libro-reclamaciones';
+
 export const routes: Routes = [
 
   {
@@ -166,7 +171,27 @@ export const routes: Routes = [
 
   {
     path: 'suscripciones',
-    component: SuscripcionesComponent,
+    component: SuscripcionesComponent
+  },
+
+  {
+    path: 'terminos-condiciones',
+    component: TerminosCondicionesComponent
+  },
+
+  {
+    path: 'politica-privacidad',
+    component: PoliticaPrivacidadComponent
+  },
+
+  {
+    path: 'politica-devoluciones',
+    component: PoliticaDevolucionesComponent
+  },
+
+  {
+    path: 'libro-reclamaciones',
+    component: LibroReclamacionesComponent
   },
 
   {
@@ -174,7 +199,6 @@ export const routes: Routes = [
     redirectTo: 'login',
     pathMatch: 'full'
   },
-
 
   {
     path: '**',
