@@ -1,9 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { PostulacionService } from '../../../core/services/postulacion';
+import { SuscripcionService } from '../../../core/services/suscripcion';
+import { UsoPlanUsuario } from '../../../core/models/suscripcion';
 
 @Component({
   selector: 'app-postular-oferta',
@@ -12,7 +14,7 @@ import { PostulacionService } from '../../../core/services/postulacion';
   templateUrl: './postular-oferta.html',
   styleUrl: './postular-oferta.scss'
 })
-export class PostularOfertaComponent {
+export class PostularOfertaComponent implements OnInit {
 
   idOferta!: number;
 
@@ -23,26 +25,61 @@ export class PostularOfertaComponent {
   mensajeError: string = '';
 
   cargando: boolean = false;
+  cargandoUsoPlan: boolean = false;
+
+  miUso?: UsoPlanUsuario;
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private postulacionService: PostulacionService
+    private postulacionService: PostulacionService,
+    private suscripcionService: SuscripcionService
   ) {}
 
   ngOnInit(): void {
     this.idOferta = Number(this.route.snapshot.paramMap.get('id'));
 
     console.log('ID oferta desde la ruta:', this.idOferta);
+    this.cargarMiUsoPlan();
+  }
+
+  get limitePostulacionesAlcanzado(): boolean {
+    const restantes = this.miUso?.postulacionesRestantes;
+
+    return restantes !== null && restantes !== undefined && restantes <= 0;
   }
 
   get mostrarUpgradePostulaciones(): boolean {
     const mensaje = this.normalizarMensaje(this.mensajeError);
 
-    return mensaje.includes('limite mensual de postulaciones') ||
+    return this.limitePostulacionesAlcanzado ||
+      mensaje.includes('limite mensual de postulaciones') ||
       mensaje.includes('límite mensual de postulaciones') ||
       mensaje.includes('has alcanzado el limite mensual') ||
       mensaje.includes('has alcanzado el límite mensual');
+  }
+
+  get detalleUsoPostulaciones(): string {
+    if (!this.miUso || this.miUso.maxPostulacionesMes === null || this.miUso.maxPostulacionesMes === undefined) {
+      return 'Tu plan actual permite postular sin límite mensual.';
+    }
+
+    return `Has usado ${this.miUso.postulacionesUsadas} de ${this.miUso.maxPostulacionesMes} postulaciones mensuales.`;
+  }
+
+  cargarMiUsoPlan(): void {
+    this.cargandoUsoPlan = true;
+
+    this.suscripcionService.obtenerMiUso().subscribe({
+      next: (uso) => {
+        this.miUso = uso;
+        this.cargandoUsoPlan = false;
+      },
+      error: (error) => {
+        console.error('Error cargando uso del plan:', error);
+        this.cargandoUsoPlan = false;
+      }
+    });
   }
 
   cambiarOpcionCv(valor: boolean): void {
@@ -99,6 +136,11 @@ export class PostularOfertaComponent {
 
     if (!this.idOferta) {
       this.mensajeError = 'No se encontró la oferta laboral.';
+      return;
+    }
+
+    if (this.limitePostulacionesAlcanzado) {
+      this.mensajeError = 'Has alcanzado el límite mensual de postulaciones de tu plan actual.';
       return;
     }
 

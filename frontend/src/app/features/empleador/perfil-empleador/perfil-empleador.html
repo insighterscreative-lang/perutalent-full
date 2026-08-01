@@ -9,8 +9,9 @@
       <button
         class="btn btn-primary"
         type="button"
-        routerLink="/empleador/ofertas/crear">
-        Crear oferta
+        [disabled]="cargandoUsoPlan || limiteOfertasAlcanzado"
+        (click)="crearOferta()">
+        {{ limiteOfertasAlcanzado ? 'Límite de ofertas alcanzado' : 'Crear oferta' }}
       </button>
 
       <button
@@ -35,6 +36,20 @@
         Visitar sitio web
       </button>
 
+    </div>
+
+    <div class="plan-limit-box" *ngIf="!cargando && perfil && limiteOfertasAlcanzado">
+      <div>
+        <span class="limit-label">Límite alcanzado</span>
+        <h3>No puedes crear más ofertas activas con tu plan actual</h3>
+        <p>
+          {{ detalleUsoOfertas }} Finaliza una oferta abierta o mejora a Premium para publicar más ofertas activas.
+        </p>
+      </div>
+
+      <button type="button" class="btn btn-upgrade" (click)="irSuscripciones()">
+        Ver planes
+      </button>
     </div>
 
     <div class="loading" *ngIf="cargando">

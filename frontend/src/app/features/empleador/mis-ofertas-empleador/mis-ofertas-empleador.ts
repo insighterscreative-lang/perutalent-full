@@ -3,6 +3,8 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { EmpleadorService } from 'src/app/core/services/empleador';
+import { SuscripcionService } from 'src/app/core/services/suscripcion';
+import { UsoPlanUsuario } from 'src/app/core/models/suscripcion';
 import { EmpleadorResponse, TrabajoPerfil } from 'src/app/core/models/empleador';
 import { TopbarComponent } from 'src/app/shared/components/topbar/topbar';
 
@@ -19,6 +21,9 @@ export class MisOfertasEmpleadorComponent implements OnInit {
 
   cargando = true;
   mensajeError = '';
+  cargandoUsoPlan = false;
+
+  miUso?: UsoPlanUsuario;
 
   tabActiva: 'activos' | 'finalizados' = 'activos';
 
@@ -27,12 +32,14 @@ export class MisOfertasEmpleadorComponent implements OnInit {
 
   constructor(
     private empleadorService: EmpleadorService,
+    private suscripcionService: SuscripcionService,
     private router: Router,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
     this.obtenerPerfil();
+    this.cargarMiUsoPlan();
   }
 
   obtenerPerfil(): void {
@@ -78,6 +85,37 @@ export class MisOfertasEmpleadorComponent implements OnInit {
 
   get ofertasFinalizadas(): TrabajoPerfil[] {
     return this.perfil?.trabajosFinalizadosDetalle || [];
+  }
+
+  get limiteOfertasAlcanzado(): boolean {
+    const restantes = this.miUso?.ofertasRestantes;
+
+    return restantes !== null && restantes !== undefined && restantes <= 0;
+  }
+
+  get detalleUsoOfertas(): string {
+    if (!this.miUso || this.miUso.maxOfertasActivas === null || this.miUso.maxOfertasActivas === undefined) {
+      return 'Tu plan actual permite publicar ofertas activas sin límite.';
+    }
+
+    return `Tienes ${this.miUso.ofertasPublicadas} de ${this.miUso.maxOfertasActivas} ofertas activas permitidas.`;
+  }
+
+  cargarMiUsoPlan(): void {
+    this.cargandoUsoPlan = true;
+
+    this.suscripcionService.obtenerMiUso().subscribe({
+      next: (uso) => {
+        this.miUso = uso;
+        this.cargandoUsoPlan = false;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error cargando uso del plan:', error);
+        this.cargandoUsoPlan = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   verDetalle(oferta: TrabajoPerfil): void {
@@ -129,7 +167,15 @@ export class MisOfertasEmpleadorComponent implements OnInit {
   }
 
   crearOferta(): void {
+    if (this.limiteOfertasAlcanzado) {
+      return;
+    }
+
     this.router.navigate(['/empleador/ofertas/crear']);
+  }
+
+  irSuscripciones(): void {
+    this.router.navigate(['/suscripciones']);
   }
 
   volverPerfil(): void {

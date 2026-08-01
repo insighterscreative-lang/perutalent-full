@@ -7,9 +7,11 @@ import com.INSIGHTERS_PERU.Up.Work.Perusalen.model.entity.PlanSuscripcion;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.model.entity.SuscripcionUsuario;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.model.entity.UsoPlanUsuario;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.model.entity.Usuario;
+import com.INSIGHTERS_PERU.Up.Work.Perusalen.repository.OfertaLaboralRepository;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.repository.PlanSuscripcionRepository;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.repository.SuscripcionUsuarioRepository;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.repository.UsoPlanUsuarioRepository;
+import com.INSIGHTERS_PERU.Up.Work.Perusalen.repository.UsuarioEmpleadorRepository;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,17 +29,23 @@ public class SuscripcionService {
     private final SuscripcionUsuarioRepository suscripcionUsuarioRepository;
     private final UsoPlanUsuarioRepository usoPlanUsuarioRepository;
     private final UsuarioRepository usuarioRepository;
+    private final UsuarioEmpleadorRepository usuarioEmpleadorRepository;
+    private final OfertaLaboralRepository ofertaLaboralRepository;
 
     public SuscripcionService(
             PlanSuscripcionRepository planSuscripcionRepository,
             SuscripcionUsuarioRepository suscripcionUsuarioRepository,
             UsoPlanUsuarioRepository usoPlanUsuarioRepository,
-            UsuarioRepository usuarioRepository
+            UsuarioRepository usuarioRepository,
+            UsuarioEmpleadorRepository usuarioEmpleadorRepository,
+            OfertaLaboralRepository ofertaLaboralRepository
     ) {
         this.planSuscripcionRepository = planSuscripcionRepository;
         this.suscripcionUsuarioRepository = suscripcionUsuarioRepository;
         this.usoPlanUsuarioRepository = usoPlanUsuarioRepository;
         this.usuarioRepository = usuarioRepository;
+        this.usuarioEmpleadorRepository = usuarioEmpleadorRepository;
+        this.ofertaLaboralRepository = ofertaLaboralRepository;
     }
 
     private static final String PLAN_GRATUITO = "GRATUITO";
@@ -96,8 +104,9 @@ public class SuscripcionService {
 
         SuscripcionUsuario suscripcion = obtenerOCrearSuscripcionGratuita(usuario);
         UsoPlanUsuario uso = obtenerOCrearUsoMensual(usuario);
+        Integer ofertasActivasActuales = obtenerOfertasActivasActuales(usuario);
 
-        return convertirUsoPlanUsuarioDTO(uso, suscripcion.getPlan());
+        return convertirUsoPlanUsuarioDTO(uso, suscripcion.getPlan(), ofertasActivasActuales);
     }
 
     @Transactional
@@ -243,6 +252,15 @@ public class SuscripcionService {
                 });
     }
 
+    private Integer obtenerOfertasActivasActuales(Usuario usuario) {
+        return usuarioEmpleadorRepository.findByUsuarioId(usuario.getId())
+                .map(empleador -> ofertaLaboralRepository.countByIdEmpleadorIdAndEstadoOferta(
+                        empleador.getId(),
+                        "ABIERTA"
+                ))
+                .orElse(0);
+    }
+
     private MiSuscripcionDTO actualizarSuscripcionUsuario(
             Usuario usuario,
             PlanSuscripcion planNuevo
@@ -343,15 +361,21 @@ public class SuscripcionService {
         );
     }
 
-    private UsoPlanUsuarioDTO convertirUsoPlanUsuarioDTO(UsoPlanUsuario uso, PlanSuscripcion plan) {
+    private UsoPlanUsuarioDTO convertirUsoPlanUsuarioDTO(
+            UsoPlanUsuario uso,
+            PlanSuscripcion plan,
+            Integer ofertasActivasActuales
+    ) {
         Integer postulacionesRestantes = calcularRestantes(
                 plan.getMaxPostulacionesMes(),
                 uso.getPostulacionesUsadas()
         );
 
+        Integer ofertasActivas = ofertasActivasActuales != null ? ofertasActivasActuales : 0;
+
         Integer ofertasRestantes = calcularRestantes(
                 plan.getMaxOfertasActivas(),
-                uso.getOfertasPublicadas()
+                ofertasActivas
         );
 
         Integer recomendacionesRestantes = calcularRestantes(
@@ -363,7 +387,7 @@ public class SuscripcionService {
                 uso.getId(),
                 uso.getPeriodo(),
                 uso.getPostulacionesUsadas(),
-                uso.getOfertasPublicadas(),
+                ofertasActivas,
                 uso.getRecomendacionesVistas(),
                 plan.getMaxPostulacionesMes(),
                 plan.getMaxOfertasActivas(),

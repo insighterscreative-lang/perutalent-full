@@ -1,15 +1,17 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 
 import { EmpleadorService } from 'src/app/core/services/empleador';
+import { SuscripcionService } from 'src/app/core/services/suscripcion';
+import { UsoPlanUsuario } from 'src/app/core/models/suscripcion';
 import { EmpleadorResponse } from 'src/app/core/models/empleador';
 import { TopbarComponent } from 'src/app/shared/components/topbar/topbar';
 
 @Component({
   selector: 'app-perfil-empleador',
   standalone: true,
-  imports: [CommonModule, RouterLink, TopbarComponent],
+  imports: [CommonModule, TopbarComponent],
   templateUrl: './perfil-empleador.html',
   styleUrl: './perfil-empleador.scss'
 })
@@ -19,17 +21,22 @@ export class PerfilEmpleadorComponent implements OnInit {
 
   cargando = true;
   mensajeError = '';
+  cargandoUsoPlan = false;
+
+  miUso?: UsoPlanUsuario;
 
   tabActiva: 'finalizados' | 'activos' = 'finalizados';
 
   constructor(
     private empleadorService: EmpleadorService,
+    private suscripcionService: SuscripcionService,
     private router: Router,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
     this.obtenerPerfil();
+    this.cargarMiUsoPlan();
   }
 
   obtenerPerfil(): void {
@@ -67,6 +74,49 @@ export class PerfilEmpleadorComponent implements OnInit {
 
   cambiarTab(tab: 'finalizados' | 'activos'): void {
     this.tabActiva = tab;
+  }
+
+  get limiteOfertasAlcanzado(): boolean {
+    const restantes = this.miUso?.ofertasRestantes;
+
+    return restantes !== null && restantes !== undefined && restantes <= 0;
+  }
+
+  get detalleUsoOfertas(): string {
+    if (!this.miUso || this.miUso.maxOfertasActivas === null || this.miUso.maxOfertasActivas === undefined) {
+      return 'Tu plan actual permite publicar ofertas activas sin límite.';
+    }
+
+    return `Tienes ${this.miUso.ofertasPublicadas} de ${this.miUso.maxOfertasActivas} ofertas activas permitidas.`;
+  }
+
+  cargarMiUsoPlan(): void {
+    this.cargandoUsoPlan = true;
+
+    this.suscripcionService.obtenerMiUso().subscribe({
+      next: (uso) => {
+        this.miUso = uso;
+        this.cargandoUsoPlan = false;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error cargando uso del plan:', error);
+        this.cargandoUsoPlan = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  crearOferta(): void {
+    if (this.limiteOfertasAlcanzado) {
+      return;
+    }
+
+    this.router.navigate(['/empleador/ofertas/crear']);
+  }
+
+  irSuscripciones(): void {
+    this.router.navigate(['/suscripciones']);
   }
 
   editarPerfil(): void {

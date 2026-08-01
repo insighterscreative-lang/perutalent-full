@@ -27,7 +27,7 @@
         <span class="upgrade-label">Límite alcanzado</span>
         <h3>No puedes crear más ofertas activas con tu plan actual</h3>
         <p>
-          Finaliza una oferta abierta o mejora a Premium para publicar ofertas activas sin límite.
+          {{ detalleUsoOfertas }} Finaliza una oferta abierta o mejora a Premium para publicar ofertas activas sin límite.
         </p>
       </div>
 
@@ -298,7 +298,7 @@
 
         <button
           type="submit"
-          [disabled]="cargando || !ofertaForm.valid || mostrarUpgradeOfertas">
+          [disabled]="cargando || cargandoUsoPlan || !ofertaForm.valid || limiteOfertasAlcanzado || mostrarUpgradeOfertas">
           {{ textoBotonPrincipal }}
         </button>
 

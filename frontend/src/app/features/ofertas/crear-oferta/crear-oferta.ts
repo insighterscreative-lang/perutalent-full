@@ -8,6 +8,8 @@ import { forkJoin, timeout } from 'rxjs';
 import { environment } from 'src/enviroments/enviroment';
 import { Oferta, OfertaRequest } from 'src/app/core/models/oferta';
 import { OfertaService } from 'src/app/core/services/oferta.service';
+import { SuscripcionService } from 'src/app/core/services/suscripcion';
+import { UsoPlanUsuario } from 'src/app/core/models/suscripcion';
 
 interface CatalogoDTO {
   id: number;
@@ -44,6 +46,9 @@ export class CrearOferta implements OnInit {
   catalogosCargados = false;
   cargando = false;
   cargandoOferta = false;
+  cargandoUsoPlan = false;
+
+  miUso?: UsoPlanUsuario;
 
   mensajeError = '';
   mensajeExito = '';
@@ -85,6 +90,7 @@ export class CrearOferta implements OnInit {
   constructor(
     private http: HttpClient,
     private ofertaService: OfertaService,
+    private suscripcionService: SuscripcionService,
     private route: ActivatedRoute,
     private router: Router,
     private cdr: ChangeDetectorRef
@@ -101,6 +107,7 @@ export class CrearOferta implements OnInit {
     }
 
     this.cargarCatalogos();
+    this.cargarMiUsoPlan();
   }
 
   get tituloPagina(): string {
@@ -125,13 +132,49 @@ export class CrearOferta implements OnInit {
     return this.modoEdicion && this.estadoOferta === 'ABIERTA';
   }
 
+  get limiteOfertasAlcanzado(): boolean {
+    if (this.modoEdicion) {
+      return false;
+    }
+
+    const restantes = this.miUso?.ofertasRestantes;
+
+    return restantes !== null && restantes !== undefined && restantes <= 0;
+  }
+
   get mostrarUpgradeOfertas(): boolean {
     const mensaje = this.normalizarMensaje(this.mensajeError);
 
-    return mensaje.includes('limite de ofertas activas') ||
+    return this.limiteOfertasAlcanzado ||
+      mensaje.includes('limite de ofertas activas') ||
       mensaje.includes('límite de ofertas activas') ||
       mensaje.includes('has alcanzado el limite de ofertas') ||
       mensaje.includes('has alcanzado el límite de ofertas');
+  }
+
+  get detalleUsoOfertas(): string {
+    if (!this.miUso || this.miUso.maxOfertasActivas === null || this.miUso.maxOfertasActivas === undefined) {
+      return 'Tu plan actual permite publicar ofertas activas sin límite.';
+    }
+
+    return `Tienes ${this.miUso.ofertasPublicadas} de ${this.miUso.maxOfertasActivas} ofertas activas permitidas.`;
+  }
+
+  cargarMiUsoPlan(): void {
+    this.cargandoUsoPlan = true;
+
+    this.suscripcionService.obtenerMiUso().subscribe({
+      next: (uso) => {
+        this.miUso = uso;
+        this.cargandoUsoPlan = false;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error cargando uso del plan:', error);
+        this.cargandoUsoPlan = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   cargarCatalogos(): void {
@@ -309,6 +352,12 @@ export class CrearOferta implements OnInit {
   guardarOferta(): void {
     this.mensajeError = '';
     this.mensajeExito = '';
+
+    if (!this.modoEdicion && this.limiteOfertasAlcanzado) {
+      this.mensajeError = 'Has alcanzado el límite de ofertas activas de tu plan actual.';
+      this.cdr.detectChanges();
+      return;
+    }
 
     if (!this.validarFormulario()) {
       this.cdr.detectChanges();

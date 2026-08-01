@@ -6,6 +6,8 @@ import { ActivatedRoute, Router } from '@angular/router';
 
 import { OfertaService, FiltrosOfertas, SimpleDTO } from 'src/app/core/services/oferta.service';
 import { PostulacionService } from 'src/app/core/services/postulacion';
+import { SuscripcionService } from 'src/app/core/services/suscripcion';
+import { UsoPlanUsuario } from 'src/app/core/models/suscripcion';
 import { Oferta } from 'src/app/core/models/oferta';
 import { TopbarComponent } from 'src/app/shared/components/topbar/topbar';
 
@@ -47,9 +49,13 @@ export class OfertasComponent implements OnInit {
 
   ofertasPostuladas = new Set<number>();
 
+  miUso?: UsoPlanUsuario;
+  cargandoUsoPlan = false;
+
   constructor(
     private ofertaService: OfertaService,
     private postulacionService: PostulacionService,
+    private suscripcionService: SuscripcionService,
     private route: ActivatedRoute,
     private router: Router,
     private cdr: ChangeDetectorRef
@@ -60,6 +66,7 @@ export class OfertasComponent implements OnInit {
 
     this.cargarFiltros();
     this.cargarOfertasPostuladas();
+    this.cargarMiUsoPlan();
 
     if (this.modoParaTi) {
       this.cargarRecomendaciones();
@@ -146,6 +153,37 @@ export class OfertasComponent implements OnInit {
 
   yaPostulo(idOferta: number): boolean {
     return this.ofertasPostuladas.has(idOferta);
+  }
+
+  get limitePostulacionesAlcanzado(): boolean {
+    const restantes = this.miUso?.postulacionesRestantes;
+
+    return restantes !== null && restantes !== undefined && restantes <= 0;
+  }
+
+  get detalleUsoPostulaciones(): string {
+    if (!this.miUso || this.miUso.maxPostulacionesMes === null || this.miUso.maxPostulacionesMes === undefined) {
+      return 'Tu plan actual permite postular sin límite mensual.';
+    }
+
+    return `Has usado ${this.miUso.postulacionesUsadas} de ${this.miUso.maxPostulacionesMes} postulaciones mensuales.`;
+  }
+
+  cargarMiUsoPlan(): void {
+    this.cargandoUsoPlan = true;
+
+    this.suscripcionService.obtenerMiUso().subscribe({
+      next: (uso) => {
+        this.miUso = uso;
+        this.cargandoUsoPlan = false;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error cargando uso del plan:', error);
+        this.cargandoUsoPlan = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   filtrar(): void {
@@ -272,6 +310,10 @@ export class OfertasComponent implements OnInit {
     this.router.navigate(['/empleado/editar-perfil']);
   }
 
+  irSuscripciones(): void {
+    this.router.navigate(['/suscripciones']);
+  }
+
   openDetail(ofertaId: number): void {
     this.ofertaService.getOfertaById(ofertaId).subscribe({
       next: (oferta: Oferta) => {
@@ -314,7 +356,7 @@ export class OfertasComponent implements OnInit {
 
     const idOferta = this.selectedOferta.id;
 
-    if (this.yaPostulo(idOferta)) {
+    if (this.yaPostulo(idOferta) || this.limitePostulacionesAlcanzado) {
       return;
     }
 

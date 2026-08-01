@@ -141,6 +141,20 @@
           Si no encuentras ofertas recomendadas, puedes editar tu perfil o revisar todas las ofertas disponibles.
         </div>
 
+        <div class="plan-limit-banner" *ngIf="limitePostulacionesAlcanzado">
+          <div>
+            <span class="limit-label">Límite alcanzado</span>
+            <h3>Ya usaste tus postulaciones disponibles</h3>
+            <p>
+              {{ detalleUsoPostulaciones }} Mejora a Premium para postular sin límite.
+            </p>
+          </div>
+
+          <button type="button" class="btn-upgrade" (click)="irSuscripciones()">
+            Ver planes
+          </button>
+        </div>
+
         <div class="quick-sort">
           <button type="button" (click)="aplicarOrden('fecha', 'desc')">
             Más recientes
@@ -304,9 +318,17 @@
           <button
             class="applyBtn primary"
             type="button"
-            [disabled]="yaPostulo(selectedOferta.id)"
+            [disabled]="yaPostulo(selectedOferta.id) || limitePostulacionesAlcanzado"
             (click)="applyNow()">
-            {{ yaPostulo(selectedOferta.id) ? 'Ya postulaste' : 'Postular' }}
+            {{ yaPostulo(selectedOferta.id) ? 'Ya postulaste' : (limitePostulacionesAlcanzado ? 'Límite alcanzado' : 'Postular') }}
+          </button>
+
+          <button
+            class="applyBtn upgrade"
+            type="button"
+            *ngIf="limitePostulacionesAlcanzado && !yaPostulo(selectedOferta.id)"
+            (click)="irSuscripciones()">
+            Ver planes
           </button>
 
           <button class="applyBtn secondary" type="button" (click)="closeDrawer()">
@@ -314,8 +336,12 @@
           </button>
         </div>
 
-        <div class="applyMeta" *ngIf="!yaPostulo(selectedOferta.id)">
+        <div class="applyMeta" *ngIf="!yaPostulo(selectedOferta.id) && !limitePostulacionesAlcanzado">
           Serás redirigido al formulario para enviar tu CV a esta oferta.
+        </div>
+
+        <div class="applyMeta limit-reached" *ngIf="limitePostulacionesAlcanzado && !yaPostulo(selectedOferta.id)">
+          {{ detalleUsoPostulaciones }} Para seguir postulando, cambia a Premium.
         </div>
 
         <div class="applyMeta already-applied" *ngIf="yaPostulo(selectedOferta.id)">
