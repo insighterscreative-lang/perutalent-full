@@ -89,6 +89,17 @@ export class PerfilEmpleadoPublicoComponent implements OnInit {
     window.history.back();
   }
 
+  obtenerUrlFotoPerfil(): string {
+    if (!this.perfil?.fotoPerfil || !this.idEmpleado) {
+      return '';
+    }
+
+    return this.empleadoService.obtenerUrlFotoPerfilPublica(
+      this.idEmpleado,
+      this.perfil.fotoPerfil
+    );
+  }
+
   obtenerIniciales(): string {
     if (!this.perfil) {
       return 'UP';

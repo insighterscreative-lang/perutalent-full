@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -34,4 +35,12 @@ public class MiSuscripcionDTO {
     private Boolean prioridadPostulante;
 
     private Boolean ofertasDestacadas;
+
+    private Boolean renovacionAutomatica;
+
+    private LocalDate fechaProximoCobro;
+
+    private LocalDateTime fechaUltimoCobro;
+
+    private LocalDateTime fechaCancelacion;
 }

@@ -10,7 +10,7 @@
         <p class="eyebrow">Suscripciones</p>
         <h1>Elige el plan que mejor se adapte a tu trabajo</h1>
         <p class="subtitle">
-          Puedes revisar los planes sin iniciar sesión. Para elegir uno, deberás ingresar a tu cuenta.
+          El plan Premium se renueva automáticamente cada mes mientras no canceles la suscripción.
         </p>
 
         <p class="test-note" *ngIf="autenticado && culqiTestMode">
@@ -68,9 +68,29 @@
           <p>
             Estado: <strong>{{ miSuscripcion.estadoSuscripcion }}</strong>
             <span *ngIf="miSuscripcion.fechaFin">
-              · Vence el {{ miSuscripcion.fechaFin }}
+              · Vigente hasta el {{ miSuscripcion.fechaFin }}
             </span>
           </p>
+
+          <div class="renewal-info" *ngIf="tienePremiumRenovable()">
+            <span>Renovación automática activa</span>
+            <strong *ngIf="miSuscripcion.fechaProximoCobro">
+              Próximo cobro: {{ miSuscripcion.fechaProximoCobro }}
+            </strong>
+            <small>
+              Si cancelas, Culqi no realizará cobros automáticos futuros.
+            </small>
+          </div>
+
+          <div class="subscription-actions" *ngIf="tienePremiumRenovable()">
+            <button
+              type="button"
+              class="btn btn-danger"
+              [disabled]="cancelandoSuscripcion || pagandoPremium || cambiandoPlan"
+              (click)="cancelarSuscripcionPremium()">
+              {{ cancelandoSuscripcion ? 'Cancelando...' : 'Cancelar suscripción' }}
+            </button>
+          </div>
         </div>
 
         <div class="current-mini-grid" *ngIf="miUso">
@@ -129,7 +149,7 @@
             class="btn plan-btn"
             [class.btn-primary]="!autenticado || !esPlanActual(plan)"
             [class.btn-disabled]="autenticado && esPlanActual(plan)"
-            [disabled]="autenticado && (esPlanActual(plan) || cambiandoPlan || pagandoPremium)"
+            [disabled]="autenticado && (esPlanActual(plan) || cambiandoPlan || pagandoPremium || cancelandoSuscripcion)"
             (click)="seleccionarPlan(plan)">
             {{ obtenerTextoBoton(plan) }}
           </button>

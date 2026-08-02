@@ -54,6 +54,21 @@ public class SuscripcionUsuario {
     @Column(name = "culqi_subscription_id", length = 150)
     private String culqiSubscriptionId;
 
+    @Column(name = "renovacion_automatica", nullable = false)
+    private Boolean renovacionAutomatica = false;
+
+    @Column(name = "fecha_ultimo_cobro")
+    private LocalDateTime fechaUltimoCobro;
+
+    @Column(name = "fecha_proximo_cobro")
+    private LocalDate fechaProximoCobro;
+
+    @Column(name = "fecha_cancelacion")
+    private LocalDateTime fechaCancelacion;
+
+    @Column(name = "motivo_cancelacion", length = 500)
+    private String motivoCancelacion;
+
     @Column(name = "fecha_creacion", nullable = false)
     private LocalDateTime fechaCreacion;
 

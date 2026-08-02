@@ -48,7 +48,7 @@ public class UsuarioEmpleadoController {
 
         Long idUsuario = jwtUtil.getIdFromRequest(request);
 
-        usuarioEmpleadoService.crearPerfil(dto, idUsuario, null);
+        usuarioEmpleadoService.crearPerfil(dto, idUsuario, null, null);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new ApiResponse<>(
@@ -64,11 +64,12 @@ public class UsuarioEmpleadoController {
     public ResponseEntity<ApiResponse<String>> crearPerfilMultipart(
             @Valid @RequestPart("perfil") UsuarioEmpleadoRequestDTO dto,
             @RequestPart(value = "cv", required = false) MultipartFile cv,
+            @RequestPart(value = "fotoPerfil", required = false) MultipartFile fotoPerfil,
             HttpServletRequest request) {
 
         Long idUsuario = jwtUtil.getIdFromRequest(request);
 
-        usuarioEmpleadoService.crearPerfil(dto, idUsuario, cv);
+        usuarioEmpleadoService.crearPerfil(dto, idUsuario, cv, fotoPerfil);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new ApiResponse<>(
@@ -149,6 +150,19 @@ public class UsuarioEmpleadoController {
         );
     }
 
+    @GetMapping("/perfil-publico/{idEmpleado}/foto")
+    public ResponseEntity<?> verFotoPerfilPublica(
+            @PathVariable Long idEmpleado) {
+
+        UsuarioEmpleado empleado = usuarioEmpleadoService.obtenerPerfilEntidadPorId(idEmpleado);
+
+        if (empleado.getFotoPerfil() == null || empleado.getFotoPerfil().isBlank()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return responderArchivoImagen(empleado.getFotoPerfil(), "foto-perfil");
+    }
+
     @PutMapping(
             value = "/perfil",
             consumes = MediaType.APPLICATION_JSON_VALUE
@@ -159,7 +173,7 @@ public class UsuarioEmpleadoController {
 
         Long idUsuario = jwtUtil.getIdFromRequest(request);
 
-        usuarioEmpleadoService.editarPerfil(dto, idUsuario, null);
+        usuarioEmpleadoService.editarPerfil(dto, idUsuario, null, null);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(
@@ -176,11 +190,12 @@ public class UsuarioEmpleadoController {
     public ResponseEntity<ApiResponse<String>> editarPerfilMultipart(
             @Valid @RequestPart("perfil") UsuarioEmpleadoRequestDTO dto,
             @RequestPart(value = "cv", required = false) MultipartFile cv,
+            @RequestPart(value = "fotoPerfil", required = false) MultipartFile fotoPerfil,
             HttpServletRequest request) {
 
         Long idUsuario = jwtUtil.getIdFromRequest(request);
 
-        usuarioEmpleadoService.editarPerfil(dto, idUsuario, cv);
+        usuarioEmpleadoService.editarPerfil(dto, idUsuario, cv, fotoPerfil);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(
@@ -188,5 +203,34 @@ public class UsuarioEmpleadoController {
                         null
                 )
         );
+    }
+
+    private ResponseEntity<?> responderArchivoImagen(String key, String nombreArchivo) {
+        if (s3StorageService.esUrlPublica(key)) {
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header(HttpHeaders.LOCATION, key)
+                    .build();
+        }
+
+        ResponseInputStream<GetObjectResponse> archivoS3 =
+                s3StorageService.descargarArchivo(key);
+
+        GetObjectResponse respuestaS3 = archivoS3.response();
+
+        String contentType = respuestaS3.contentType() != null
+                ? respuestaS3.contentType()
+                : MediaType.IMAGE_JPEG_VALUE;
+
+        Long contentLength = respuestaS3.contentLength();
+
+        ResponseEntity.BodyBuilder responseBuilder = ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + nombreArchivo + "\"")
+                .contentType(MediaType.parseMediaType(contentType));
+
+        if (contentLength != null && contentLength > 0) {
+            responseBuilder.contentLength(contentLength);
+        }
+
+        return responseBuilder.body(new InputStreamResource(archivoS3));
     }
 }

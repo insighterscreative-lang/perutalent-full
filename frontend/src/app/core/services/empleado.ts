@@ -13,8 +13,12 @@ export class EmpleadoService {
 
   constructor(private http: HttpClient) {}
 
-  crearPerfil(dto: EmpleadoRequest, cv?: File | null): Observable<ApiResponse<string>> {
-    const formData = this.construirFormDataPerfil(dto, cv);
+  crearPerfil(
+    dto: EmpleadoRequest,
+    cv?: File | null,
+    fotoPerfil?: File | null
+  ): Observable<ApiResponse<string>> {
+    const formData = this.construirFormDataPerfil(dto, cv, fotoPerfil);
     return this.http.post<ApiResponse<string>>(`${this.apiUrl}/perfil`, formData);
   }
 
@@ -22,8 +26,12 @@ export class EmpleadoService {
     return this.http.get<ApiResponse<EmpleadoResponse>>(`${this.apiUrl}/perfil`);
   }
 
-  editarPerfil(dto: EmpleadoRequest, cv?: File | null): Observable<ApiResponse<string>> {
-    const formData = this.construirFormDataPerfil(dto, cv);
+  editarPerfil(
+    dto: EmpleadoRequest,
+    cv?: File | null,
+    fotoPerfil?: File | null
+  ): Observable<ApiResponse<string>> {
+    const formData = this.construirFormDataPerfil(dto, cv, fotoPerfil);
     return this.http.put<ApiResponse<string>>(`${this.apiUrl}/perfil`, formData);
   }
 
@@ -37,7 +45,23 @@ export class EmpleadoService {
     return this.http.get<any>(`${this.apiUrl}/perfil-publico/${idEmpleado}`);
   }
 
-  private construirFormDataPerfil(dto: EmpleadoRequest, cv?: File | null): FormData {
+  obtenerUrlFotoPerfilPublica(idEmpleado: number, fotoPerfil?: string | null): string {
+    if (!fotoPerfil) {
+      return '';
+    }
+
+    if (/^https?:\/\//i.test(fotoPerfil.trim())) {
+      return fotoPerfil;
+    }
+
+    return `${this.apiUrl}/perfil-publico/${idEmpleado}/foto?v=${encodeURIComponent(fotoPerfil)}`;
+  }
+
+  private construirFormDataPerfil(
+    dto: EmpleadoRequest,
+    cv?: File | null,
+    fotoPerfil?: File | null
+  ): FormData {
     const formData = new FormData();
 
     formData.append(
@@ -49,6 +73,10 @@ export class EmpleadoService {
 
     if (cv) {
       formData.append('cv', cv, cv.name);
+    }
+
+    if (fotoPerfil) {
+      formData.append('fotoPerfil', fotoPerfil, fotoPerfil.name);
     }
 
     return formData;

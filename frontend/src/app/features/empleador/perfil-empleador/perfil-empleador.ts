@@ -127,18 +127,15 @@ export class PerfilEmpleadorComponent implements OnInit {
     this.router.navigate(['/empleador/mis-ofertas']);
   }
 
-  visitarSitioWeb(): void {
-    if (!this.perfil?.sitioWeb) {
-      return;
+  obtenerUrlLogo(): string {
+    if (!this.perfil?.logoEmpleador || !this.perfil.idEmpleador) {
+      return '';
     }
 
-    let url = this.perfil.sitioWeb.trim();
-
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = `https://${url}`;
-    }
-
-    window.open(url, '_blank');
+    return this.empleadorService.obtenerUrlLogoPublico(
+      this.perfil.idEmpleador,
+      this.perfil.logoEmpleador
+    );
   }
 
   obtenerIniciales(): string {

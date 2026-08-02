@@ -47,7 +47,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 || ("GET".equalsIgnoreCase(method) && path.equals("/suscripciones/planes"))
 
-                || ("GET".equalsIgnoreCase(method) && path.equals("/pagos/culqi/config"));
+                || ("GET".equalsIgnoreCase(method) && path.matches("^/empleados/perfil-publico/\\d+/foto$"))
+                || ("GET".equalsIgnoreCase(method) && path.matches("^/empleadores/perfil-publico/\\d+/logo$"))
+
+                || ("GET".equalsIgnoreCase(method) && path.equals("/pagos/culqi/config"))
+
+                || ("POST".equalsIgnoreCase(method) && path.equals("/pagos/culqi/webhook"));
     }
 
     @Override

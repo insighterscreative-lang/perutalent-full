@@ -4,48 +4,24 @@
 
   <div class="container">
 
-    <div class="profile-actions" *ngIf="perfil">
+    <div class="profile-actions">
+
+      <button class="btn btn-secondary" type="button" (click)="volver()">
+        Volver
+      </button>
 
       <button
         class="btn btn-primary"
         type="button"
-        [disabled]="cargandoUsoPlan || limiteOfertasAlcanzado"
-        (click)="crearOferta()">
-        {{ limiteOfertasAlcanzado ? 'Límite de ofertas alcanzado' : 'Crear oferta' }}
+        *ngIf="perfil?.sitioWeb"
+        (click)="visitarSitioWeb()">
+        Visitar sitio web
       </button>
 
-      <button
-        class="btn btn-secondary"
-        type="button"
-        (click)="verMisOfertas()">
-        Mis ofertas
-      </button>
-
-      <button
-        class="btn btn-secondary"
-        type="button"
-        (click)="editarPerfil()">
-        Editar perfil
-      </button>
-
-    </div>
-
-    <div class="plan-limit-box" *ngIf="!cargando && perfil && limiteOfertasAlcanzado">
-      <div>
-        <span class="limit-label">Límite alcanzado</span>
-        <h3>No puedes crear más ofertas activas con tu plan actual</h3>
-        <p>
-          {{ detalleUsoOfertas }} Finaliza una oferta abierta o mejora a Premium para publicar más ofertas activas.
-        </p>
-      </div>
-
-      <button type="button" class="btn btn-upgrade" (click)="irSuscripciones()">
-        Ver planes
-      </button>
     </div>
 
     <div class="loading" *ngIf="cargando">
-      Cargando perfil de empleador...
+      Cargando perfil de empresa...
     </div>
 
     <div class="error-box" *ngIf="!cargando && mensajeError">
@@ -99,13 +75,13 @@
           <div class="stats">
 
             <div class="stat">
-              <h3>{{ perfil.trabajosFinalizados }}</h3>
-              <p>Trabajos realizados</p>
+              <h3>{{ perfil.trabajosActivos }}</h3>
+              <p>Trabajos activos</p>
             </div>
 
             <div class="stat">
-              <h3>{{ perfil.trabajosActivos }}</h3>
-              <p>Trabajos activos</p>
+              <h3>{{ perfil.trabajosFinalizados }}</h3>
+              <p>Trabajos realizados</p>
             </div>
 
           </div>
@@ -115,7 +91,7 @@
         <div class="card">
 
           <div class="section-title">
-            Información del empleador
+            Información de la empresa
           </div>
 
           <div class="info-grid">
@@ -172,7 +148,7 @@
             </div>
 
             <p class="description">
-              {{ perfil.descripcionNegocio || 'Este empleador aún no agregó una descripción del negocio.' }}
+              {{ perfil.descripcionNegocio || 'Esta empresa aún no agregó una descripción del negocio.' }}
             </p>
 
           </div>
@@ -212,7 +188,7 @@
             </div>
 
             <p class="description">
-              Esta información fue proporcionada por el empleador para facilitar el contacto externo.
+              Esta información fue proporcionada por la empresa para facilitar el contacto externo.
             </p>
 
             <div class="contact-list">
@@ -245,57 +221,25 @@
             <button
               type="button"
               class="tab"
-              [class.active]="tabActiva === 'finalizados'"
-              (click)="cambiarTab('finalizados')">
-              Trabajos realizados
-            </button>
-
-            <button
-              type="button"
-              class="tab"
               [class.active]="tabActiva === 'activos'"
               (click)="cambiarTab('activos')">
               Trabajos activos
             </button>
 
-          </div>
-
-          <div class="job-list" *ngIf="tabActiva === 'finalizados'">
-
-            <div class="empty" *ngIf="!perfil.trabajosFinalizadosDetalle || !perfil.trabajosFinalizadosDetalle.length">
-              Este empleador aún no tiene trabajos finalizados.
-            </div>
-
-            <div class="job-item" *ngFor="let trabajo of perfil.trabajosFinalizadosDetalle">
-
-              <h4>{{ trabajo.titulo }}</h4>
-
-              <p>{{ trabajo.descripcion }}</p>
-
-              <div class="job-meta">
-
-                <div class="badge" *ngIf="trabajo.categoria">
-                  {{ trabajo.categoria }}
-                </div>
-
-                <div class="badge" *ngIf="trabajo.modalidad">
-                  {{ trabajo.modalidad }}
-                </div>
-
-                <div class="badge">
-                  {{ trabajo.estadoOferta }}
-                </div>
-
-              </div>
-
-            </div>
+            <button
+              type="button"
+              class="tab"
+              [class.active]="tabActiva === 'finalizados'"
+              (click)="cambiarTab('finalizados')">
+              Trabajos realizados
+            </button>
 
           </div>
 
           <div class="job-list" *ngIf="tabActiva === 'activos'">
 
             <div class="empty" *ngIf="!perfil.trabajosActivosDetalle || !perfil.trabajosActivosDetalle.length">
-              Este empleador no tiene trabajos activos actualmente.
+              Esta empresa no tiene trabajos activos actualmente.
             </div>
 
             <div class="job-item active-job" *ngFor="let trabajo of perfil.trabajosActivosDetalle">
@@ -305,7 +249,6 @@
               <p>{{ trabajo.descripcion }}</p>
 
               <div class="job-meta">
-
                 <div class="badge" *ngIf="trabajo.categoria">
                   {{ trabajo.categoria }}
                 </div>
@@ -317,7 +260,36 @@
                 <div class="badge">
                   {{ trabajo.estadoOferta }}
                 </div>
+              </div>
 
+            </div>
+
+          </div>
+
+          <div class="job-list" *ngIf="tabActiva === 'finalizados'">
+
+            <div class="empty" *ngIf="!perfil.trabajosFinalizadosDetalle || !perfil.trabajosFinalizadosDetalle.length">
+              Esta empresa aún no tiene trabajos finalizados.
+            </div>
+
+            <div class="job-item" *ngFor="let trabajo of perfil.trabajosFinalizadosDetalle">
+
+              <h4>{{ trabajo.titulo }}</h4>
+
+              <p>{{ trabajo.descripcion }}</p>
+
+              <div class="job-meta">
+                <div class="badge" *ngIf="trabajo.categoria">
+                  {{ trabajo.categoria }}
+                </div>
+
+                <div class="badge" *ngIf="trabajo.modalidad">
+                  {{ trabajo.modalidad }}
+                </div>
+
+                <div class="badge">
+                  {{ trabajo.estadoOferta }}
+                </div>
               </div>
 
             </div>

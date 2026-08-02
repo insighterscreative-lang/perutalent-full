@@ -21,6 +21,8 @@ public class OfertaLaboralResponseDTO {
 
     private String empleador;
 
+    private Long idEmpleador;
+
     private String distrito;
 
     private Long idDistrito;

@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.UsuarioEmpleadorRequestDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.UsuarioEmpleadorResponseDTO;
@@ -46,8 +47,10 @@ public class UsuarioEmpleadorService {
 
     private final OfertaLaboralRepository ofertaLaboralRepository;
 
+    private final S3StorageService s3StorageService;
+
     @Transactional
-    public void crearPerfil(UsuarioEmpleadorRequestDTO dto, Long idUsuario) {
+    public void crearPerfil(UsuarioEmpleadorRequestDTO dto, Long idUsuario, MultipartFile logo) {
 
         normalizarDto(dto);
         validarDatosPerfil(dto);
@@ -71,6 +74,11 @@ public class UsuarioEmpleadorService {
         UsuarioEmpleador empleador = usuarioEmpleadorMapper.toEntity(dto);
 
         empleador.setUsuario(usuario);
+
+        if (logo != null && !logo.isEmpty()) {
+            String logoKey = s3StorageService.subirLogoEmpleador(logo, idUsuario);
+            empleador.setLogoEmpleador(logoKey);
+        }
 
         UsuarioEmpleador empleadorGuardado = usuarioEmpleadorRepository.save(empleador);
 
@@ -96,7 +104,7 @@ public class UsuarioEmpleadorService {
     }
 
     @Transactional
-    public void editarPerfil(UsuarioEmpleadorRequestDTO dto, Long idUsuario) {
+    public void editarPerfil(UsuarioEmpleadorRequestDTO dto, Long idUsuario, MultipartFile logo) {
 
         normalizarDto(dto);
         validarDatosPerfil(dto);
@@ -119,13 +127,70 @@ public class UsuarioEmpleadorService {
             throw new ConflictException("El número de documento ya está registrado");
         }
 
+        String logoAnterior = empleador.getLogoEmpleador();
+        String nuevoLogo = null;
+
+        if (logo != null && !logo.isEmpty()) {
+            nuevoLogo = s3StorageService.subirLogoEmpleador(logo, idUsuario);
+        }
+
         usuarioEmpleadorMapper.updateEntity(empleador, dto);
 
+        if (nuevoLogo != null) {
+            empleador.setLogoEmpleador(nuevoLogo);
+        } else {
+            empleador.setLogoEmpleador(logoAnterior);
+        }
+
         usuarioEmpleadorRepository.save(empleador);
+
+        if (nuevoLogo != null) {
+            eliminarArchivoAnteriorSiCorresponde(logoAnterior, "logo anterior del empleador");
+        }
 
         empleadorCategoriaRepository.deleteByEmpleadorId(empleador.getId());
 
         guardarCategorias(empleador, dto.getCategoriasId());
+    }
+
+
+    @Transactional(readOnly = true)
+    public UsuarioEmpleador obtenerPerfilEntidadPorId(Long idEmpleador) {
+
+        return usuarioEmpleadorRepository
+                .findById(idEmpleador)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Perfil de empleador no encontrado"));
+    }
+
+    @Transactional(readOnly = true)
+    public UsuarioEmpleadorResponseDTO obtenerPerfilPublico(Long idEmpleador) {
+
+        UsuarioEmpleador empleador = usuarioEmpleadorRepository
+                .findById(idEmpleador)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Perfil de empleador no encontrado"));
+
+        UsuarioEmpleadorResponseDTO response =
+                usuarioEmpleadorMapper.toResponseDTO(empleador);
+
+        llenarCategorias(response, empleador);
+        llenarModalidadesContratacion(response, empleador);
+        llenarTrabajos(response, empleador);
+
+        return response;
+    }
+
+    private void eliminarArchivoAnteriorSiCorresponde(String rutaAnterior, String descripcion) {
+        if (rutaAnterior == null || rutaAnterior.isBlank()) {
+            return;
+        }
+
+        try {
+            s3StorageService.eliminarArchivo(rutaAnterior);
+        } catch (Exception e) {
+            System.out.println("No se pudo eliminar " + descripcion + ": " + e.getMessage());
+        }
     }
 
     private void validarDatosPerfil(UsuarioEmpleadorRequestDTO dto) {

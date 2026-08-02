@@ -422,3 +422,48 @@ h1 {
     font-size: 30px;
   }
 }
+.renewal-info {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(34, 197, 94, 0.10);
+  border: 1px solid rgba(34, 197, 94, 0.20);
+  color: #166534;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 850;
+}
+
+.renewal-info span {
+  font-size: 13px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.renewal-info strong {
+  font-size: 15px;
+}
+
+.renewal-info small {
+  color: #15803d;
+  line-height: 1.45;
+}
+
+.subscription-actions {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-danger {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #fecaca;
+}

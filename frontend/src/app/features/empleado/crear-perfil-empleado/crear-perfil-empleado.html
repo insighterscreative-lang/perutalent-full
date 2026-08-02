@@ -201,13 +201,34 @@
           </div>
         </div>
 
-        <div class="field">
-          <label>URL de foto de perfil</label>
+        <div class="field file-field">
+          <label>Foto de perfil</label>
+
+          <div class="image-preview" *ngIf="previewFotoPerfil">
+            <img [src]="previewFotoPerfil" alt="Vista previa de foto de perfil">
+          </div>
+
           <input
-            type="text"
-            name="fotoPerfil"
-            [(ngModel)]="perfil.fotoPerfil"
-            placeholder="Ejemplo: https://.../foto.jpg">
+            #fotoInput
+            type="file"
+            name="fotoPerfilArchivo"
+            accept="image/jpeg,image/png,image/webp"
+            (change)="onFotoPerfilSeleccionada($event)">
+
+          <small class="file-hint">
+            Selecciona una imagen JPG, PNG o WEBP desde tu computadora. Máximo 2 MB.
+          </small>
+
+          <div class="file-status" *ngIf="nombreFotoPerfilSeleccionada">
+            <span>Imagen seleccionada: {{ nombreFotoPerfilSeleccionada }}</span>
+
+            <button
+              type="button"
+              class="file-clear"
+              (click)="quitarFotoPerfilSeleccionada(); fotoInput.value = ''">
+              Quitar
+            </button>
+          </div>
         </div>
 
       </div>

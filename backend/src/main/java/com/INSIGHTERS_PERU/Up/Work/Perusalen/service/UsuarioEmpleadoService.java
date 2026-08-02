@@ -72,7 +72,7 @@ public class UsuarioEmpleadoService {
     private final S3StorageService s3StorageService;
 
     @Transactional
-    public void crearPerfil(UsuarioEmpleadoRequestDTO dto, Long idUsuario, MultipartFile cv) {
+    public void crearPerfil(UsuarioEmpleadoRequestDTO dto, Long idUsuario, MultipartFile cv, MultipartFile fotoPerfil) {
 
         normalizarDto(dto);
         validarDatosPerfil(dto);
@@ -105,6 +105,11 @@ public class UsuarioEmpleadoService {
         if (cv != null && !cv.isEmpty()) {
             String cvKey = s3StorageService.subirCvPerfil(cv, idUsuario);
             empleado.setCurriculum(cvKey);
+        }
+
+        if (fotoPerfil != null && !fotoPerfil.isEmpty()) {
+            String fotoKey = s3StorageService.subirFotoPerfilEmpleado(fotoPerfil, idUsuario);
+            empleado.setFotoPerfil(fotoKey);
         }
 
         UsuarioEmpleado empleadoGuardado = usuarioEmpleadoRepository.save(empleado);
@@ -141,8 +146,17 @@ public class UsuarioEmpleadoService {
                         new ResourceNotFoundException("Perfil de empleado no encontrado"));
     }
 
+    @Transactional(readOnly = true)
+    public UsuarioEmpleado obtenerPerfilEntidadPorId(Long idEmpleado) {
+
+        return usuarioEmpleadoRepository
+                .findById(idEmpleado)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Perfil de empleado no encontrado"));
+    }
+
     @Transactional
-    public void editarPerfil(UsuarioEmpleadoRequestDTO dto, Long idUsuario, MultipartFile cv) {
+    public void editarPerfil(UsuarioEmpleadoRequestDTO dto, Long idUsuario, MultipartFile cv, MultipartFile fotoPerfil) {
 
         normalizarDto(dto);
         validarDatosPerfil(dto);
@@ -170,10 +184,16 @@ public class UsuarioEmpleadoService {
                         new ResourceNotFoundException("Distrito no encontrado"));
 
         String curriculumAnterior = empleado.getCurriculum();
+        String fotoAnterior = empleado.getFotoPerfil();
         String nuevoCurriculum = null;
+        String nuevaFotoPerfil = null;
 
         if (cv != null && !cv.isEmpty()) {
             nuevoCurriculum = s3StorageService.subirCvPerfil(cv, idUsuario);
+        }
+
+        if (fotoPerfil != null && !fotoPerfil.isEmpty()) {
+            nuevaFotoPerfil = s3StorageService.subirFotoPerfilEmpleado(fotoPerfil, idUsuario);
         }
 
         usuarioEmpleadoMapper.updateEntity(empleado, dto);
@@ -185,10 +205,20 @@ public class UsuarioEmpleadoService {
             empleado.setCurriculum(curriculumAnterior);
         }
 
+        if (nuevaFotoPerfil != null) {
+            empleado.setFotoPerfil(nuevaFotoPerfil);
+        } else {
+            empleado.setFotoPerfil(fotoAnterior);
+        }
+
         usuarioEmpleadoRepository.save(empleado);
 
         if (nuevoCurriculum != null) {
-            eliminarCvAnteriorSiCorresponde(curriculumAnterior);
+            eliminarArchivoAnteriorSiCorresponde(curriculumAnterior, "CV anterior del perfil");
+        }
+
+        if (nuevaFotoPerfil != null) {
+            eliminarArchivoAnteriorSiCorresponde(fotoAnterior, "foto anterior del perfil");
         }
 
         empleadoHabilidadRepository.deleteByEmpleadoId(empleado.getId());
@@ -202,15 +232,15 @@ public class UsuarioEmpleadoService {
         guardarModalidades(empleado, dto.getModalidadesId());
     }
 
-    private void eliminarCvAnteriorSiCorresponde(String curriculumAnterior) {
-        if (curriculumAnterior == null || curriculumAnterior.isBlank()) {
+    private void eliminarArchivoAnteriorSiCorresponde(String rutaAnterior, String descripcion) {
+        if (rutaAnterior == null || rutaAnterior.isBlank()) {
             return;
         }
 
         try {
-            s3StorageService.eliminarArchivo(curriculumAnterior);
+            s3StorageService.eliminarArchivo(rutaAnterior);
         } catch (Exception e) {
-            System.out.println("No se pudo eliminar el CV anterior del perfil: " + e.getMessage());
+            System.out.println("No se pudo eliminar " + descripcion + ": " + e.getMessage());
         }
     }
 

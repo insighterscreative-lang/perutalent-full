@@ -209,13 +209,38 @@
           </div>
         </div>
 
-        <div class="field">
-          <label>URL de foto de perfil</label>
+        <div class="field file-field">
+          <label>Foto de perfil</label>
+
+          <div class="current-file" *ngIf="perfil.fotoPerfil && !nombreFotoPerfilSeleccionada">
+            Ya tienes una foto guardada. Selecciona una nueva imagen solo si deseas reemplazarla.
+          </div>
+
+          <div class="image-preview" *ngIf="previewFotoPerfil">
+            <img [src]="previewFotoPerfil" alt="Vista previa de foto de perfil">
+          </div>
+
           <input
-            type="text"
-            name="fotoPerfil"
-            [(ngModel)]="perfil.fotoPerfil"
-            placeholder="Ejemplo: https://.../foto.jpg">
+            #fotoInput
+            type="file"
+            name="fotoPerfilArchivo"
+            accept="image/jpeg,image/png,image/webp"
+            (change)="onFotoPerfilSeleccionada($event)">
+
+          <small class="file-hint">
+            Solo se permite JPG, PNG o WEBP. Máximo 2 MB.
+          </small>
+
+          <div class="file-status" *ngIf="nombreFotoPerfilSeleccionada">
+            <span>Nueva imagen seleccionada: {{ nombreFotoPerfilSeleccionada }}</span>
+
+            <button
+              type="button"
+              class="file-clear"
+              (click)="quitarFotoPerfilSeleccionada(); fotoInput.value = ''">
+              Quitar
+            </button>
+          </div>
         </div>
 
       </div>

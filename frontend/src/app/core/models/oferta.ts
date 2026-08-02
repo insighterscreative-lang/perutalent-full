@@ -8,6 +8,7 @@ export interface Oferta {
   titulo: string;
   codigoInterno: string;
   empleador: string;
+  idEmpleador: number;
   distrito: string;
   idDistrito: number;
   montoTotal: number;

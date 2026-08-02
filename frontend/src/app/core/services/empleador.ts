@@ -13,15 +13,50 @@ export class EmpleadorService {
 
   constructor(private http: HttpClient) {}
 
-  crearPerfil(dto: EmpleadorRequest): Observable<ApiResponse<string>> {
-    return this.http.post<ApiResponse<string>>(`${this.apiUrl}/perfil`, dto);
+  crearPerfil(dto: EmpleadorRequest, logo?: File | null): Observable<ApiResponse<string>> {
+    const formData = this.construirFormDataPerfil(dto, logo);
+    return this.http.post<ApiResponse<string>>(`${this.apiUrl}/perfil`, formData);
   }
 
   obtenerPerfil(): Observable<ApiResponse<EmpleadorResponse>> {
     return this.http.get<ApiResponse<EmpleadorResponse>>(`${this.apiUrl}/perfil`);
   }
 
-  editarPerfil(dto: EmpleadorRequest): Observable<ApiResponse<string>> {
-    return this.http.put<ApiResponse<string>>(`${this.apiUrl}/perfil`, dto);
+  obtenerPerfilPublico(idEmpleador: number): Observable<ApiResponse<EmpleadorResponse>> {
+    return this.http.get<ApiResponse<EmpleadorResponse>>(`${this.apiUrl}/perfil-publico/${idEmpleador}`);
+  }
+
+  editarPerfil(dto: EmpleadorRequest, logo?: File | null): Observable<ApiResponse<string>> {
+    const formData = this.construirFormDataPerfil(dto, logo);
+    return this.http.put<ApiResponse<string>>(`${this.apiUrl}/perfil`, formData);
+  }
+
+  obtenerUrlLogoPublico(idEmpleador: number, logoEmpleador?: string | null): string {
+    if (!logoEmpleador) {
+      return '';
+    }
+
+    if (/^https?:\/\//i.test(logoEmpleador.trim())) {
+      return logoEmpleador;
+    }
+
+    return `${this.apiUrl}/perfil-publico/${idEmpleador}/logo?v=${encodeURIComponent(logoEmpleador)}`;
+  }
+
+  private construirFormDataPerfil(dto: EmpleadorRequest, logo?: File | null): FormData {
+    const formData = new FormData();
+
+    formData.append(
+      'perfil',
+      new Blob([JSON.stringify(dto)], {
+        type: 'application/json'
+      })
+    );
+
+    if (logo) {
+      formData.append('logo', logo, logo.name);
+    }
+
+    return formData;
   }
 }

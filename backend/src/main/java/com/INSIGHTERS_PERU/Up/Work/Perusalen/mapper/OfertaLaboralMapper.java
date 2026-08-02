@@ -31,6 +31,7 @@ public class OfertaLaboralMapper {
                 oferta.getTitulo(),
                 oferta.getCodigoInterno(),
                 oferta.getIdEmpleador().getNombreComercial(),
+                oferta.getIdEmpleador().getId(),
                 oferta.getIdDistrito().getNombreDistrito(),
                 oferta.getIdDistrito().getId(),
                 oferta.getMontoTotal(),

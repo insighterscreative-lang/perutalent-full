@@ -115,6 +115,17 @@ export class PerfilEmpleadoComponent implements OnInit {
     return /^https?:\/\//i.test(valor.trim());
   }
 
+  obtenerUrlFotoPerfil(): string {
+    if (!this.perfil?.fotoPerfil || !this.perfil.idEmpleado) {
+      return '';
+    }
+
+    return this.empleadoService.obtenerUrlFotoPerfilPublica(
+      this.perfil.idEmpleado,
+      this.perfil.fotoPerfil
+    );
+  }
+
   obtenerIniciales(): string {
     if (!this.perfil) {
       return 'UP';

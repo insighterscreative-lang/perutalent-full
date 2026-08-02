@@ -109,13 +109,38 @@
         </textarea>
       </div>
 
-      <div class="field">
-        <label>URL de logo</label>
+      <div class="field file-field">
+        <label>Logo o foto del empleador</label>
+
+        <div class="current-file" *ngIf="perfil.logoEmpleador && !nombreLogoSeleccionado">
+          Ya tienes una imagen guardada. Selecciona una nueva solo si deseas reemplazarla.
+        </div>
+
+        <div class="image-preview" *ngIf="previewLogo">
+          <img [src]="previewLogo" alt="Vista previa del logo">
+        </div>
+
         <input
-          type="text"
-          name="logoEmpleador"
-          [(ngModel)]="perfil.logoEmpleador"
-          placeholder="Ejemplo: https://.../logo.png">
+          #logoInput
+          type="file"
+          name="logoArchivo"
+          accept="image/jpeg,image/png,image/webp"
+          (change)="onLogoSeleccionado($event)">
+
+        <small class="file-hint">
+          Solo se permite JPG, PNG o WEBP. Máximo 2 MB.
+        </small>
+
+        <div class="file-status" *ngIf="nombreLogoSeleccionado">
+          <span>Nueva imagen seleccionada: {{ nombreLogoSeleccionado }}</span>
+
+          <button
+            type="button"
+            class="file-clear"
+            (click)="quitarLogoSeleccionado(); logoInput.value = ''">
+            Quitar
+          </button>
+        </div>
       </div>
 
       <h2>Información de contacto opcional</h2>

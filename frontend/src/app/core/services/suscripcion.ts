@@ -45,4 +45,8 @@ export class SuscripcionService {
   pagarPremium(request: PagoPremiumRequest): Observable<PagoSuscripcionResponse> {
     return this.http.post<PagoSuscripcionResponse>(`${this.pagosUrl}/premium`, request);
   }
+
+  cancelarPremium(): Observable<MiSuscripcion> {
+    return this.http.post<MiSuscripcion>(`${this.pagosUrl}/premium/cancelar`, {});
+  }
 }

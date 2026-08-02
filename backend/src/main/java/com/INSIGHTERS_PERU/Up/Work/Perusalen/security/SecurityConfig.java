@@ -54,7 +54,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/suscripciones/planes").permitAll()
                 .requestMatchers("/suscripciones/**").authenticated()
 
+                .requestMatchers(HttpMethod.GET, "/empleados/perfil-publico/*/foto").permitAll()
+                .requestMatchers(HttpMethod.GET, "/empleadores/perfil-publico/*/logo").permitAll()
                 .requestMatchers(HttpMethod.GET, "/empleados/perfil-publico/*").authenticated()
+                .requestMatchers(HttpMethod.GET, "/empleadores/perfil-publico/*").hasAuthority("ROLE_EMPLEADO")
 
                 .requestMatchers(HttpMethod.POST, "/empleados/perfil").hasAuthority("ROLE_EMPLEADO")
                 .requestMatchers(HttpMethod.GET, "/empleados/perfil").hasAuthority("ROLE_EMPLEADO")
@@ -81,7 +84,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/postulaciones/*/cv").authenticated()
 
                 .requestMatchers(HttpMethod.GET, "/pagos/culqi/config").permitAll()
+                .requestMatchers(HttpMethod.POST, "/pagos/culqi/webhook").permitAll()
                 .requestMatchers(HttpMethod.POST, "/pagos/culqi/premium").authenticated()
+                .requestMatchers(HttpMethod.POST, "/pagos/culqi/premium/cancelar").authenticated()
 
                 .anyRequest().authenticated()
             )

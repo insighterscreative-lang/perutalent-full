@@ -203,7 +203,12 @@
             <div class="offer-top">
               <div>
                 <h2>{{ oferta.titulo }}</h2>
-                <p class="company">{{ oferta.empleador }}</p>
+                <button
+                  type="button"
+                  class="company-link"
+                  (click)="irAPerfilEmpleador(oferta.idEmpleador)">
+                  {{ oferta.empleador }}
+                </button>
               </div>
 
               <div class="amount">
@@ -278,7 +283,12 @@
       </h2>
 
       <div class="d-meta">
-        <span>{{ selectedOferta.empleador }}</span>
+        <button
+          type="button"
+          class="company-pill"
+          (click)="irAPerfilEmpleador(selectedOferta.idEmpleador)">
+          Ver empresa: {{ selectedOferta.empleador }}
+        </button>
         <span>{{ selectedOferta.distrito }}</span>
         <span>S/ {{ selectedOferta.montoTotal }}</span>
       </div>
@@ -315,6 +325,13 @@
     <div class="d-right">
       <div class="applyBox">
         <div class="applyActions">
+          <button
+            class="applyBtn company"
+            type="button"
+            (click)="irAPerfilEmpleador(selectedOferta.idEmpleador)">
+            Ver perfil de empresa
+          </button>
+
           <button
             class="applyBtn primary"
             type="button"

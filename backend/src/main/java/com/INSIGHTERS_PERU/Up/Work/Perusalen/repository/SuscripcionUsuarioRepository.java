@@ -15,6 +15,8 @@ public interface SuscripcionUsuarioRepository extends JpaRepository<SuscripcionU
 
     Optional<SuscripcionUsuario> findFirstByUsuario_IdOrderByFechaCreacionDesc(Long idUsuario);
 
+    Optional<SuscripcionUsuario> findFirstByCulqiSubscriptionIdOrderByFechaCreacionDesc(String culqiSubscriptionId);
+
     List<SuscripcionUsuario> findByUsuario_IdOrderByFechaCreacionDesc(Long idUsuario);
 
     boolean existsByUsuario_IdAndEstadoSuscripcionIn(Long idUsuario, List<String> estados);

@@ -26,6 +26,10 @@ export class CrearPerfilEmpleadorComponent implements OnInit {
   mensajeError = '';
   mensajeExito = '';
 
+  logoSeleccionado: File | null = null;
+  nombreLogoSeleccionado = '';
+  previewLogo = '';
+
   categorias: CatalogoItem[] = [];
   busquedaCategorias = '';
 
@@ -178,7 +182,7 @@ export class CrearPerfilEmpleadorComponent implements OnInit {
 
     this.cargando = true;
 
-    this.empleadorService.crearPerfil(this.perfil).subscribe({
+    this.empleadorService.crearPerfil(this.perfil, this.logoSeleccionado).subscribe({
       next: () => {
         this.cargando = false;
         this.mensajeExito = 'Perfil de empleador creado exitosamente';
@@ -195,6 +199,70 @@ export class CrearPerfilEmpleadorComponent implements OnInit {
         this.cdr.detectChanges();
       }
     });
+  }
+
+  onLogoSeleccionado(event: Event): void {
+    this.mensajeError = '';
+
+    const input = event.target as HTMLInputElement;
+    const archivo = input.files?.[0] ?? null;
+
+    if (!archivo) {
+      this.logoSeleccionado = null;
+      this.nombreLogoSeleccionado = '';
+      this.previewLogo = '';
+      return;
+    }
+
+    const nombre = archivo.name.toLowerCase();
+    const tipo = archivo.type;
+
+    const esImagenValida = tipo === 'image/jpeg'
+      || tipo === 'image/jpg'
+      || tipo === 'image/png'
+      || tipo === 'image/webp'
+      || nombre.endsWith('.jpg')
+      || nombre.endsWith('.jpeg')
+      || nombre.endsWith('.png')
+      || nombre.endsWith('.webp');
+
+    if (!esImagenValida) {
+      this.logoSeleccionado = null;
+      this.nombreLogoSeleccionado = '';
+      this.previewLogo = '';
+      this.mensajeError = 'El logo debe ser JPG, PNG o WEBP';
+      input.value = '';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const maxSizeBytes = 2 * 1024 * 1024;
+
+    if (archivo.size > maxSizeBytes) {
+      this.logoSeleccionado = null;
+      this.nombreLogoSeleccionado = '';
+      this.previewLogo = '';
+      this.mensajeError = 'El logo no debe superar los 2 MB';
+      input.value = '';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.logoSeleccionado = archivo;
+    this.nombreLogoSeleccionado = archivo.name;
+    this.previewLogo = URL.createObjectURL(archivo);
+    this.cdr.detectChanges();
+  }
+
+  quitarLogoSeleccionado(): void {
+    this.logoSeleccionado = null;
+    this.nombreLogoSeleccionado = '';
+
+    if (this.previewLogo) {
+      URL.revokeObjectURL(this.previewLogo);
+    }
+
+    this.previewLogo = '';
   }
 
   private validarFormulario(): boolean {

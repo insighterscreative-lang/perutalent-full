@@ -26,6 +26,10 @@ export interface MiSuscripcion {
   maxOfertasActivas: number | null;
   prioridadPostulante: boolean;
   ofertasDestacadas: boolean;
+  renovacionAutomatica: boolean;
+  fechaProximoCobro: string | null;
+  fechaUltimoCobro: string | null;
+  fechaCancelacion: string | null;
 }
 
 export interface UsoPlanUsuario {
@@ -63,8 +67,12 @@ export interface PagoSuscripcionResponse {
   montoCentimos: number;
   moneda: string;
 
-  culqiChargeId: string;
+  culqiChargeId: string | null;
+  culqiSubscriptionId: string;
+
+  renovacionAutomatica: boolean;
 
   fechaInicio: string;
   fechaFin: string | null;
+  fechaProximoCobro: string | null;
 }

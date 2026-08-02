@@ -31,6 +31,7 @@ export class SuscripcionesComponent implements OnInit {
   cargando = true;
   cambiandoPlan = false;
   pagandoPremium = false;
+  cancelandoSuscripcion = false;
 
   mensajeError = '';
   mensajeExito = '';
@@ -131,7 +132,7 @@ export class SuscripcionesComponent implements OnInit {
       return;
     }
 
-    if (this.esPlanActual(plan) || this.cambiandoPlan || this.pagandoPremium) {
+    if (this.esPlanActual(plan) || this.cambiandoPlan || this.pagandoPremium || this.cancelandoSuscripcion) {
       return;
     }
 
@@ -140,6 +141,11 @@ export class SuscripcionesComponent implements OnInit {
 
     if (this.esPremium(plan)) {
       this.iniciarPagoPremium(plan);
+      return;
+    }
+
+    if (this.miSuscripcion?.esPremium) {
+      this.cancelarSuscripcionPremium();
       return;
     }
 
@@ -160,13 +166,45 @@ export class SuscripcionesComponent implements OnInit {
       error: (error) => {
         console.error('Error cambiando plan:', error);
 
-        this.mensajeError =
-          error?.error?.message ||
-          error?.error?.mensaje ||
-          error?.error?.error ||
-          'No se pudo cambiar el plan seleccionado.';
+        this.mensajeError = this.obtenerMensajeError(error, 'No se pudo cambiar el plan seleccionado.');
 
         this.cambiandoPlan = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  cancelarSuscripcionPremium(): void {
+    if (!this.autenticado || this.cancelandoSuscripcion) {
+      return;
+    }
+
+    const confirmado = window.confirm(
+      '¿Deseas cancelar tu suscripción Premium? Se cancelarán los cobros automáticos futuros.'
+    );
+
+    if (!confirmado) {
+      return;
+    }
+
+    this.cancelandoSuscripcion = true;
+    this.mensajeError = '';
+    this.mensajeExito = 'Cancelando suscripción Premium...';
+    this.cdr.detectChanges();
+
+    this.suscripcionService.cancelarPremium().subscribe({
+      next: (suscripcion) => {
+        this.miSuscripcion = suscripcion;
+        this.mensajeExito = 'Tu suscripción Premium fue cancelada. Ya no se realizarán cobros automáticos futuros.';
+        this.cancelandoSuscripcion = false;
+        this.cargarMiUso();
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error cancelando suscripción:', error);
+        this.mensajeError = this.obtenerMensajeError(error, 'No se pudo cancelar la suscripción Premium.');
+        this.mensajeExito = '';
+        this.cancelandoSuscripcion = false;
         this.cdr.detectChanges();
       }
     });
@@ -200,7 +238,7 @@ export class SuscripcionesComponent implements OnInit {
         title: 'PeruTalent Premium',
         currency: plan.moneda || 'PEN',
         amount: plan.precioCentimos,
-        description: 'Suscripción Premium por 30 días'
+        description: 'Suscripción Premium mensual con renovación automática'
       });
 
       window.Culqi.options({
@@ -215,7 +253,7 @@ export class SuscripcionesComponent implements OnInit {
           cuotealo: false
         },
         style: {
-          buttonText: 'Pagar Premium',
+          buttonText: 'Suscribirme',
           buttonBackground: '#22c55e',
           buttonTextColor: '#ffffff',
           priceColor: '#0f172a'
@@ -262,7 +300,7 @@ export class SuscripcionesComponent implements OnInit {
 
   procesarPagoPremium(plan: PlanSuscripcion, tokenId: string): void {
     this.mensajeError = '';
-    this.mensajeExito = 'Procesando pago de prueba con Culqi...';
+    this.mensajeExito = 'Creando suscripción mensual con Culqi...';
     this.cdr.detectChanges();
 
     this.suscripcionService.pagarPremium({
@@ -270,7 +308,7 @@ export class SuscripcionesComponent implements OnInit {
       tokenId
     }).subscribe({
       next: (response) => {
-        this.mensajeExito = response.mensaje || 'Pago aprobado. Tu plan Premium fue activado.';
+        this.mensajeExito = response.mensaje || 'Suscripción Premium creada correctamente.';
         this.pagandoPremium = false;
         this.planPendientePago = undefined;
 
@@ -278,13 +316,9 @@ export class SuscripcionesComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('Error procesando pago Premium:', error);
+        console.error('Error creando suscripción Premium:', error);
 
-        this.mensajeError =
-          error?.error?.message ||
-          error?.error?.mensaje ||
-          error?.error?.error ||
-          'No se pudo procesar el pago con Culqi.';
+        this.mensajeError = this.obtenerMensajeError(error, 'No se pudo crear la suscripción con Culqi.');
 
         this.mensajeExito = '';
         this.pagandoPremium = false;
@@ -345,11 +379,7 @@ export class SuscripcionesComponent implements OnInit {
       return 'sin pago';
     }
 
-    if (plan.duracionDias === 30) {
-      return 'por 30 días';
-    }
-
-    return `por ${plan.duracionDias} días`;
+    return 'mensual automático';
   }
 
   obtenerBeneficios(plan: PlanSuscripcion): string[] {
@@ -379,6 +409,11 @@ export class SuscripcionesComponent implements OnInit {
 
     if (plan.ofertasDestacadas) {
       beneficios.push('Ofertas destacadas con mayor visibilidad');
+    }
+
+    if (this.esPremium(plan)) {
+      beneficios.push('Renovación automática mensual mientras no canceles');
+      beneficios.push('Puedes cancelar la suscripción desde tu cuenta');
     }
 
     if (!plan.prioridadPostulante && !plan.ofertasDestacadas) {
@@ -422,18 +457,37 @@ export class SuscripcionesComponent implements OnInit {
     }
 
     if (this.pagandoPremium && this.planPendientePago?.id === plan.id) {
-      return 'Procesando pago...';
+      return 'Creando suscripción...';
+    }
+
+    if (this.cancelandoSuscripcion) {
+      return 'Cancelando...';
     }
 
     if (this.cambiandoPlan) {
       return 'Actualizando...';
     }
 
+    if (this.miSuscripcion?.esPremium && !this.esPremium(plan)) {
+      return 'Cancelar Premium';
+    }
+
     if (this.esPremium(plan)) {
-      return 'Pagar Premium';
+      return 'Suscribirme a Premium';
     }
 
     return 'Elegir plan';
+  }
+
+  tienePremiumRenovable(): boolean {
+    return !!this.miSuscripcion?.esPremium && !!this.miSuscripcion?.renovacionAutomatica;
+  }
+
+  obtenerMensajeError(error: any, fallback: string): string {
+    return error?.error?.message ||
+      error?.error?.mensaje ||
+      error?.error?.error ||
+      fallback;
   }
 
   irLogin(): void {

@@ -17,6 +17,7 @@ import { PerfilEmpleadoPublicoComponent } from './features/empleado/perfil-emple
 
 import { CrearPerfilEmpleadorComponent } from './features/empleador/crear-perfil-empleador/crear-perfil-empleador';
 import { PerfilEmpleadorComponent } from './features/empleador/perfil-empleador/perfil-empleador';
+import { PerfilEmpleadorPublicoComponent } from './features/empleador/perfil-empleador-publico/perfil-empleador-publico';
 import { EditarPerfilEmpleadorComponent } from './features/empleador/editar-perfil-empleador/editar-perfil-empleador';
 import { MisOfertasEmpleadorComponent } from './features/empleador/mis-ofertas-empleador/mis-ofertas-empleador';
 
@@ -83,6 +84,16 @@ export const routes: Routes = [
     canActivate: [RoleGuard],
     data: {
       roles: ['ROLE_EMPLEADOR']
+    }
+  },
+
+
+  {
+    path: 'empleador/perfil-publico/:idEmpleador',
+    component: PerfilEmpleadorPublicoComponent,
+    canActivate: [RoleGuard],
+    data: {
+      roles: ['ROLE_EMPLEADO']
     }
   },
 

@@ -314,6 +314,17 @@ export class OfertasComponent implements OnInit {
     this.router.navigate(['/suscripciones']);
   }
 
+  irAPerfilEmpleador(idEmpleador?: number): void {
+    if (!idEmpleador) {
+      return;
+    }
+
+    this.drawerOpen = false;
+    document.body.style.overflow = '';
+
+    this.router.navigate(['/empleador/perfil-publico', idEmpleador]);
+  }
+
   openDetail(ofertaId: number): void {
     this.ofertaService.getOfertaById(ofertaId).subscribe({
       next: (oferta: Oferta) => {

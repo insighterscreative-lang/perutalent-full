@@ -87,6 +87,74 @@ public class S3StorageService {
         );
     }
 
+
+    public String subirFotoPerfilEmpleado(MultipartFile archivo, Long idUsuario) {
+        return subirImagenPerfil(
+                archivo,
+                idUsuario,
+                "empleados",
+                "foto-perfil",
+                "foto de perfil del empleado"
+        );
+    }
+
+    public String subirLogoEmpleador(MultipartFile archivo, Long idUsuario) {
+        return subirImagenPerfil(
+                archivo,
+                idUsuario,
+                "empleadores",
+                "logo-empleador",
+                "logo del empleador"
+        );
+    }
+
+    private String subirImagenPerfil(
+            MultipartFile archivo,
+            Long idUsuario,
+            String carpeta,
+            String tipo,
+            String descripcionArchivo
+    ) {
+        validarArchivoImagenPerfil(archivo);
+
+        String nombreOriginal = limpiarNombreArchivo(archivo.getOriginalFilename());
+        String extension = obtenerExtensionImagen(nombreOriginal, archivo.getContentType());
+
+        String fecha = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        String nombreFinal = fecha + "-" + UUID.randomUUID() + extension;
+
+        String key = "imagenes"
+                + "/" + carpeta
+                + "/usuario-" + idUsuario
+                + "/" + nombreFinal;
+
+        try {
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .contentType(obtenerContentTypeImagen(extension, archivo.getContentType()))
+                    .contentLength(archivo.getSize())
+                    .metadata(Map.of(
+                            "nombre-original", nombreOriginal,
+                            "id-usuario", String.valueOf(idUsuario),
+                            "tipo", tipo
+                    ))
+                    .build();
+
+            s3Client.putObject(
+                    putObjectRequest,
+                    RequestBody.fromInputStream(archivo.getInputStream(), archivo.getSize())
+            );
+
+            return key;
+
+        } catch (IOException e) {
+            throw new RuntimeException("No se pudo leer la imagen para subirla a S3.");
+        } catch (Exception e) {
+            throw new RuntimeException("No se pudo subir la " + descripcionArchivo + " a S3: " + e.getMessage());
+        }
+    }
+
     private String subirArchivoPdf(
             MultipartFile archivo,
             String key,
@@ -165,6 +233,38 @@ public class S3StorageService {
         return limpio.startsWith("http://") || limpio.startsWith("https://");
     }
 
+    private void validarArchivoImagenPerfil(MultipartFile archivo) {
+        if (archivo == null || archivo.isEmpty()) {
+            throw new RuntimeException("Debes adjuntar una imagen de perfil.");
+        }
+
+        String nombreOriginal = archivo.getOriginalFilename();
+        String contentType = archivo.getContentType();
+        String nombreLower = nombreOriginal != null ? nombreOriginal.toLowerCase() : "";
+
+        boolean extensionValida = nombreLower.endsWith(".jpg")
+                || nombreLower.endsWith(".jpeg")
+                || nombreLower.endsWith(".png")
+                || nombreLower.endsWith(".webp");
+
+        boolean contentTypeValido = contentType != null && (
+                contentType.equalsIgnoreCase("image/jpeg")
+                        || contentType.equalsIgnoreCase("image/jpg")
+                        || contentType.equalsIgnoreCase("image/png")
+                        || contentType.equalsIgnoreCase("image/webp")
+        );
+
+        if (!extensionValida && !contentTypeValido) {
+            throw new RuntimeException("La imagen de perfil debe ser JPG, PNG o WEBP.");
+        }
+
+        long maxSizeBytes = 2 * 1024 * 1024;
+
+        if (archivo.getSize() > maxSizeBytes) {
+            throw new RuntimeException("La imagen de perfil no debe superar los 2 MB.");
+        }
+    }
+
     private void validarArchivoCv(MultipartFile archivo) {
         if (archivo == null || archivo.isEmpty()) {
             throw new RuntimeException("Debes adjuntar un CV en formato PDF.");
@@ -202,6 +302,57 @@ public class S3StorageService {
                 .replaceAll("[^a-zA-Z0-9.\\-_]", "-")
                 .replaceAll("-+", "-")
                 .toLowerCase();
+    }
+
+    private String obtenerExtensionImagen(String nombreArchivo, String contentType) {
+        String nombre = nombreArchivo != null ? nombreArchivo.toLowerCase() : "";
+
+        if (nombre.endsWith(".jpeg")) {
+            return ".jpg";
+        }
+
+        if (nombre.endsWith(".jpg")) {
+            return ".jpg";
+        }
+
+        if (nombre.endsWith(".png")) {
+            return ".png";
+        }
+
+        if (nombre.endsWith(".webp")) {
+            return ".webp";
+        }
+
+        if (contentType != null) {
+            if (contentType.equalsIgnoreCase("image/png")) {
+                return ".png";
+            }
+
+            if (contentType.equalsIgnoreCase("image/webp")) {
+                return ".webp";
+            }
+        }
+
+        return ".jpg";
+    }
+
+    private String obtenerContentTypeImagen(String extension, String contentTypeOriginal) {
+        if (contentTypeOriginal != null && !contentTypeOriginal.isBlank()) {
+            String limpio = contentTypeOriginal.trim().toLowerCase();
+
+            if (limpio.equals("image/jpeg")
+                    || limpio.equals("image/jpg")
+                    || limpio.equals("image/png")
+                    || limpio.equals("image/webp")) {
+                return limpio.equals("image/jpg") ? "image/jpeg" : limpio;
+            }
+        }
+
+        return switch (extension) {
+            case ".png" -> "image/png";
+            case ".webp" -> "image/webp";
+            default -> "image/jpeg";
+        };
     }
 
     private String obtenerExtension(String nombreArchivo) {

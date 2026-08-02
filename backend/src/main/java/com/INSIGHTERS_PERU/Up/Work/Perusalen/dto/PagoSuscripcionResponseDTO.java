@@ -22,7 +22,11 @@ public class PagoSuscripcionResponseDTO {
     private String moneda;
 
     private String culqiChargeId;
+    private String culqiSubscriptionId;
+
+    private Boolean renovacionAutomatica;
 
     private LocalDate fechaInicio;
     private LocalDate fechaFin;
+    private LocalDate fechaProximoCobro;
 }

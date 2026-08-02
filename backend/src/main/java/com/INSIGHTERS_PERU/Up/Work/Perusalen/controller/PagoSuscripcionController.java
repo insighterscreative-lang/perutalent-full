@@ -1,5 +1,6 @@
 package com.INSIGHTERS_PERU.Up.Work.Perusalen.controller;
 
+import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.MiSuscripcionDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.PagoPremiumRequestDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.PagoSuscripcionResponseDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.model.entity.Usuario;
@@ -55,6 +56,24 @@ public class PagoSuscripcionController {
 
         return ResponseEntity.ok(
                 pagoSuscripcionService.pagarPremium(idUsuario, request)
+        );
+    }
+
+    @PostMapping("/premium/cancelar")
+    public ResponseEntity<MiSuscripcionDTO> cancelarPremium() {
+        Long idUsuario = obtenerIdUsuarioAutenticado();
+
+        return ResponseEntity.ok(
+                pagoSuscripcionService.cancelarSuscripcionPremium(idUsuario)
+        );
+    }
+
+    @PostMapping("/webhook")
+    public ResponseEntity<Map<String, Object>> recibirWebhookCulqi(
+            @RequestBody(required = false) String payload
+    ) {
+        return ResponseEntity.ok(
+                pagoSuscripcionService.procesarWebhookCulqi(payload == null ? "{}" : payload)
         );
     }
 

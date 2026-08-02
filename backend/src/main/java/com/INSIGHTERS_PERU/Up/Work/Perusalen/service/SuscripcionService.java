@@ -19,11 +19,18 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
-import java.util.Arrays;
 import java.util.List;
 
 @Service
 public class SuscripcionService {
+
+    private static final String PLAN_GRATUITO = "GRATUITO";
+    private static final String PLAN_PREMIUM = "PREMIUM";
+
+    private static final String ESTADO_ACTIVA = "ACTIVA";
+    private static final String ESTADO_CANCELADA = "CANCELADA";
+    private static final String ESTADO_VENCIDA = "VENCIDA";
+    private static final String ESTADO_PAGO_FALLIDO = "PAGO_FALLIDO";
 
     private final PlanSuscripcionRepository planSuscripcionRepository;
     private final SuscripcionUsuarioRepository suscripcionUsuarioRepository;
@@ -47,12 +54,6 @@ public class SuscripcionService {
         this.usuarioEmpleadorRepository = usuarioEmpleadorRepository;
         this.ofertaLaboralRepository = ofertaLaboralRepository;
     }
-
-    private static final String PLAN_GRATUITO = "GRATUITO";
-    private static final String PLAN_PREMIUM = "PREMIUM";
-
-    private static final String ESTADO_ACTIVA = "ACTIVA";
-    private static final String ESTADO_PENDIENTE = "PENDIENTE";
 
     @Transactional(readOnly = true)
     public List<PlanSuscripcionDTO> listarPlanesActivos() {
@@ -78,7 +79,12 @@ public class SuscripcionService {
                 .orElseThrow(() -> new RuntimeException("El plan seleccionado no existe o no está activo."));
 
         if (PLAN_PREMIUM.equalsIgnoreCase(planNuevo.getNombrePlan())) {
-            throw new RuntimeException("Para activar Premium debes completar el pago con Culqi.");
+            throw new RuntimeException("Para activar Premium debes completar la suscripción con Culqi.");
+        }
+
+        SuscripcionUsuario suscripcionActual = obtenerSuscripcionActualEntidad(idUsuario);
+        if (esPremium(suscripcionActual.getPlan()) && suscripcionActual.getCulqiSubscriptionId() != null) {
+            throw new RuntimeException("Para volver al plan gratuito primero debes cancelar la suscripción Premium.");
         }
 
         return actualizarSuscripcionUsuario(usuario, planNuevo);
@@ -96,6 +102,143 @@ public class SuscripcionService {
         }
 
         return actualizarSuscripcionUsuario(usuario, planNuevo);
+    }
+
+    @Transactional
+    public MiSuscripcionDTO activarPlanPorSuscripcionCulqi(
+            Long idUsuario,
+            Long idPlan,
+            String culqiCustomerId,
+            String culqiCardId,
+            String culqiSubscriptionId,
+            LocalDate fechaProximoCobro
+    ) {
+        Usuario usuario = buscarUsuarioPorId(idUsuario);
+
+        PlanSuscripcion planNuevo = planSuscripcionRepository.findByIdAndActivoTrue(idPlan)
+                .orElseThrow(() -> new RuntimeException("El plan pagado no existe o no está activo."));
+
+        if (!PLAN_PREMIUM.equalsIgnoreCase(planNuevo.getNombrePlan())) {
+            throw new RuntimeException("Solo se puede activar por suscripción el plan PREMIUM.");
+        }
+
+        SuscripcionUsuario suscripcion = suscripcionUsuarioRepository
+                .findFirstByUsuario_IdAndEstadoSuscripcionInOrderByFechaCreacionDesc(
+                        usuario.getId(),
+                        estadosVigentesParaBeneficios()
+                )
+                .orElseGet(() -> crearNuevaSuscripcion(usuario));
+
+        LocalDate hoy = LocalDate.now();
+        LocalDate siguienteCobro = fechaProximoCobro != null
+                ? fechaProximoCobro
+                : hoy.plusDays(obtenerDuracionPlan(planNuevo));
+
+        suscripcion.setUsuario(usuario);
+        suscripcion.setPlan(planNuevo);
+        suscripcion.setEstadoSuscripcion(ESTADO_ACTIVA);
+        suscripcion.setFechaInicio(hoy);
+        suscripcion.setFechaFin(siguienteCobro);
+        suscripcion.setFechaProximoCobro(siguienteCobro);
+        suscripcion.setFechaUltimoCobro(LocalDateTime.now());
+        suscripcion.setFechaCancelacion(null);
+        suscripcion.setMotivoCancelacion(null);
+        suscripcion.setCulqiCustomerId(culqiCustomerId);
+        suscripcion.setCulqiCardId(culqiCardId);
+        suscripcion.setCulqiSubscriptionId(culqiSubscriptionId);
+        suscripcion.setRenovacionAutomatica(true);
+        suscripcion.setFechaActualizacion(LocalDateTime.now());
+
+        if (suscripcion.getFechaCreacion() == null) {
+            suscripcion.setFechaCreacion(LocalDateTime.now());
+        }
+
+        SuscripcionUsuario suscripcionGuardada = suscripcionUsuarioRepository.save(suscripcion);
+
+        obtenerOCrearUsoMensual(usuario);
+
+        return convertirMiSuscripcionDTO(suscripcionGuardada);
+    }
+
+    @Transactional
+    public SuscripcionUsuario obtenerSuscripcionActualEntidad(Long idUsuario) {
+        Usuario usuario = buscarUsuarioPorId(idUsuario);
+        return obtenerOCrearSuscripcionGratuita(usuario);
+    }
+
+    @Transactional
+    public MiSuscripcionDTO renovarSuscripcionPorCobroExitoso(
+            SuscripcionUsuario suscripcion,
+            LocalDate fechaProximoCobro
+    ) {
+        if (suscripcion == null) {
+            throw new RuntimeException("No se encontró la suscripción local a renovar.");
+        }
+
+        PlanSuscripcion plan = suscripcion.getPlan();
+        LocalDate hoy = LocalDate.now();
+        LocalDate siguienteCobro = fechaProximoCobro != null
+                ? fechaProximoCobro
+                : hoy.plusDays(obtenerDuracionPlan(plan));
+
+        suscripcion.setEstadoSuscripcion(ESTADO_ACTIVA);
+        suscripcion.setFechaFin(siguienteCobro);
+        suscripcion.setFechaProximoCobro(siguienteCobro);
+        suscripcion.setFechaUltimoCobro(LocalDateTime.now());
+        suscripcion.setRenovacionAutomatica(true);
+        suscripcion.setFechaActualizacion(LocalDateTime.now());
+        suscripcion.setFechaCancelacion(null);
+        suscripcion.setMotivoCancelacion(null);
+
+        SuscripcionUsuario guardada = suscripcionUsuarioRepository.save(suscripcion);
+        return convertirMiSuscripcionDTO(guardada);
+    }
+
+    @Transactional
+    public MiSuscripcionDTO marcarPagoFallido(SuscripcionUsuario suscripcion, String motivo) {
+        if (suscripcion == null) {
+            throw new RuntimeException("No se encontró la suscripción local con pago fallido.");
+        }
+
+        suscripcion.setEstadoSuscripcion(ESTADO_PAGO_FALLIDO);
+        suscripcion.setFechaActualizacion(LocalDateTime.now());
+        suscripcion.setMotivoCancelacion(motivo);
+
+        SuscripcionUsuario guardada = suscripcionUsuarioRepository.save(suscripcion);
+        return convertirMiSuscripcionDTO(guardada);
+    }
+
+    @Transactional
+    public MiSuscripcionDTO cancelarSuscripcionLocal(Long idUsuario, String motivo) {
+        SuscripcionUsuario suscripcionActual = obtenerSuscripcionActualEntidad(idUsuario);
+
+        suscripcionActual.setEstadoSuscripcion(ESTADO_CANCELADA);
+        suscripcionActual.setRenovacionAutomatica(false);
+        suscripcionActual.setFechaCancelacion(LocalDateTime.now());
+        suscripcionActual.setMotivoCancelacion(motivo);
+        suscripcionActual.setFechaActualizacion(LocalDateTime.now());
+        suscripcionUsuarioRepository.save(suscripcionActual);
+
+        Usuario usuario = suscripcionActual.getUsuario();
+        SuscripcionUsuario gratuita = crearSuscripcionGratuita(usuario);
+        return convertirMiSuscripcionDTO(gratuita);
+    }
+
+    @Transactional
+    public MiSuscripcionDTO cancelarSuscripcionLocalPorCulqiId(String culqiSubscriptionId, String motivo) {
+        SuscripcionUsuario suscripcion = suscripcionUsuarioRepository
+                .findFirstByCulqiSubscriptionIdOrderByFechaCreacionDesc(culqiSubscriptionId)
+                .orElseThrow(() -> new RuntimeException("No se encontró la suscripción local de Culqi."));
+
+        suscripcion.setEstadoSuscripcion(ESTADO_CANCELADA);
+        suscripcion.setRenovacionAutomatica(false);
+        suscripcion.setFechaCancelacion(LocalDateTime.now());
+        suscripcion.setMotivoCancelacion(motivo);
+        suscripcion.setFechaActualizacion(LocalDateTime.now());
+        suscripcionUsuarioRepository.save(suscripcion);
+
+        SuscripcionUsuario gratuita = crearSuscripcionGratuita(suscripcion.getUsuario());
+        return convertirMiSuscripcionDTO(gratuita);
     }
 
     @Transactional
@@ -212,26 +355,11 @@ public class SuscripcionService {
         return suscripcionUsuarioRepository
                 .findFirstByUsuario_IdAndEstadoSuscripcionInOrderByFechaCreacionDesc(
                         usuario.getId(),
-                        estadosActivos()
+                        estadosVigentesParaBeneficios()
                 )
-                .orElseGet(() -> {
-                    PlanSuscripcion planGratuito = planSuscripcionRepository.findByNombrePlan(PLAN_GRATUITO)
-                            .orElseThrow(() -> new RuntimeException("No existe el plan GRATUITO en la base de datos."));
-
-                    SuscripcionUsuario nuevaSuscripcion = new SuscripcionUsuario();
-                    nuevaSuscripcion.setUsuario(usuario);
-                    nuevaSuscripcion.setPlan(planGratuito);
-                    nuevaSuscripcion.setEstadoSuscripcion(ESTADO_ACTIVA);
-                    nuevaSuscripcion.setFechaInicio(LocalDate.now());
-                    nuevaSuscripcion.setFechaFin(null);
-                    nuevaSuscripcion.setCulqiCustomerId(null);
-                    nuevaSuscripcion.setCulqiCardId(null);
-                    nuevaSuscripcion.setCulqiSubscriptionId(null);
-                    nuevaSuscripcion.setFechaCreacion(LocalDateTime.now());
-                    nuevaSuscripcion.setFechaActualizacion(LocalDateTime.now());
-
-                    return suscripcionUsuarioRepository.save(nuevaSuscripcion);
-                });
+                .map(this::normalizarSuscripcionVigente)
+                .filter(suscripcion -> ESTADO_ACTIVA.equalsIgnoreCase(suscripcion.getEstadoSuscripcion()))
+                .orElseGet(() -> crearSuscripcionGratuita(usuario));
     }
 
     @Transactional
@@ -252,6 +380,38 @@ public class SuscripcionService {
                 });
     }
 
+    public boolean esPremiumActivo(SuscripcionUsuario suscripcion) {
+        return suscripcion != null
+                && suscripcion.getPlan() != null
+                && esPremium(suscripcion.getPlan())
+                && ESTADO_ACTIVA.equalsIgnoreCase(suscripcion.getEstadoSuscripcion());
+    }
+
+    private SuscripcionUsuario normalizarSuscripcionVigente(SuscripcionUsuario suscripcion) {
+        if (suscripcion == null) {
+            return null;
+        }
+
+        if (!ESTADO_ACTIVA.equalsIgnoreCase(suscripcion.getEstadoSuscripcion())) {
+            return suscripcion;
+        }
+
+        if (!esPremium(suscripcion.getPlan())) {
+            return suscripcion;
+        }
+
+        LocalDate fechaFin = suscripcion.getFechaFin();
+
+        if (fechaFin != null && fechaFin.isBefore(LocalDate.now())) {
+            suscripcion.setEstadoSuscripcion(ESTADO_VENCIDA);
+            suscripcion.setRenovacionAutomatica(false);
+            suscripcion.setFechaActualizacion(LocalDateTime.now());
+            suscripcionUsuarioRepository.save(suscripcion);
+        }
+
+        return suscripcion;
+    }
+
     private Integer obtenerOfertasActivasActuales(Usuario usuario) {
         return usuarioEmpleadorRepository.findByUsuarioId(usuario.getId())
                 .map(empleador -> ofertaLaboralRepository.countByIdEmpleadorIdAndEstadoOferta(
@@ -268,7 +428,7 @@ public class SuscripcionService {
         SuscripcionUsuario suscripcion = suscripcionUsuarioRepository
                 .findFirstByUsuario_IdAndEstadoSuscripcionInOrderByFechaCreacionDesc(
                         usuario.getId(),
-                        estadosActivos()
+                        estadosVigentesParaBeneficios()
                 )
                 .orElseGet(() -> crearNuevaSuscripcion(usuario));
 
@@ -276,6 +436,11 @@ public class SuscripcionService {
         suscripcion.setEstadoSuscripcion(ESTADO_ACTIVA);
         suscripcion.setFechaInicio(LocalDate.now());
         suscripcion.setFechaFin(calcularFechaFin(planNuevo));
+        suscripcion.setFechaProximoCobro(null);
+        suscripcion.setFechaUltimoCobro(null);
+        suscripcion.setFechaCancelacion(null);
+        suscripcion.setMotivoCancelacion(null);
+        suscripcion.setRenovacionAutomatica(false);
         suscripcion.setFechaActualizacion(LocalDateTime.now());
 
         suscripcion.setCulqiCustomerId(null);
@@ -301,24 +466,57 @@ public class SuscripcionService {
         suscripcion.setFechaInicio(LocalDate.now());
         suscripcion.setFechaCreacion(LocalDateTime.now());
         suscripcion.setFechaActualizacion(LocalDateTime.now());
+        suscripcion.setRenovacionAutomatica(false);
 
         return suscripcion;
     }
 
+    private SuscripcionUsuario crearSuscripcionGratuita(Usuario usuario) {
+        PlanSuscripcion planGratuito = planSuscripcionRepository.findByNombrePlan(PLAN_GRATUITO)
+                .orElseThrow(() -> new RuntimeException("No existe el plan GRATUITO en la base de datos."));
+
+        SuscripcionUsuario nuevaSuscripcion = new SuscripcionUsuario();
+        nuevaSuscripcion.setUsuario(usuario);
+        nuevaSuscripcion.setPlan(planGratuito);
+        nuevaSuscripcion.setEstadoSuscripcion(ESTADO_ACTIVA);
+        nuevaSuscripcion.setFechaInicio(LocalDate.now());
+        nuevaSuscripcion.setFechaFin(null);
+        nuevaSuscripcion.setFechaProximoCobro(null);
+        nuevaSuscripcion.setFechaUltimoCobro(null);
+        nuevaSuscripcion.setFechaCancelacion(null);
+        nuevaSuscripcion.setMotivoCancelacion(null);
+        nuevaSuscripcion.setCulqiCustomerId(null);
+        nuevaSuscripcion.setCulqiCardId(null);
+        nuevaSuscripcion.setCulqiSubscriptionId(null);
+        nuevaSuscripcion.setRenovacionAutomatica(false);
+        nuevaSuscripcion.setFechaCreacion(LocalDateTime.now());
+        nuevaSuscripcion.setFechaActualizacion(LocalDateTime.now());
+
+        return suscripcionUsuarioRepository.save(nuevaSuscripcion);
+    }
+
     private LocalDate calcularFechaFin(PlanSuscripcion plan) {
         if (plan.getNombrePlan().equalsIgnoreCase(PLAN_PREMIUM)) {
-            return LocalDate.now().plusDays(plan.getDuracionDias());
+            return LocalDate.now().plusDays(obtenerDuracionPlan(plan));
         }
 
         return null;
     }
 
-    private boolean esPremium(PlanSuscripcion plan) {
-        return plan.getNombrePlan().equalsIgnoreCase(PLAN_PREMIUM);
+    private int obtenerDuracionPlan(PlanSuscripcion plan) {
+        if (plan.getDuracionDias() == null || plan.getDuracionDias() <= 0) {
+            return 30;
+        }
+
+        return plan.getDuracionDias();
     }
 
-    private List<String> estadosActivos() {
-        return Arrays.asList(ESTADO_ACTIVA, ESTADO_PENDIENTE);
+    private boolean esPremium(PlanSuscripcion plan) {
+        return plan != null && plan.getNombrePlan().equalsIgnoreCase(PLAN_PREMIUM);
+    }
+
+    private List<String> estadosVigentesParaBeneficios() {
+        return List.of(ESTADO_ACTIVA);
     }
 
     private String obtenerPeriodoActual() {
@@ -357,7 +555,11 @@ public class SuscripcionService {
                 plan.getMaxRecomendaciones(),
                 plan.getMaxOfertasActivas(),
                 plan.getPrioridadPostulante(),
-                plan.getOfertasDestacadas()
+                plan.getOfertasDestacadas(),
+                Boolean.TRUE.equals(suscripcion.getRenovacionAutomatica()),
+                suscripcion.getFechaProximoCobro(),
+                suscripcion.getFechaUltimoCobro(),
+                suscripcion.getFechaCancelacion()
         );
     }
 

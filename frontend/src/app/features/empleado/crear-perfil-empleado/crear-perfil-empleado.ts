@@ -27,6 +27,10 @@ export class CrearPerfilEmpleadoComponent implements OnInit {
   cvSeleccionado: File | null = null;
   nombreCvSeleccionado = '';
 
+  fotoPerfilSeleccionada: File | null = null;
+  nombreFotoPerfilSeleccionada = '';
+  previewFotoPerfil = '';
+
   fechaMaximaNacimiento: string = this.calcularFechaMaximaNacimiento();
 
   idDepartamentoSeleccionado = 0;
@@ -280,7 +284,7 @@ export class CrearPerfilEmpleadoComponent implements OnInit {
 
     this.cargando = true;
 
-    this.empleadoService.crearPerfil(this.perfil, this.cvSeleccionado).subscribe({
+    this.empleadoService.crearPerfil(this.perfil, this.cvSeleccionado, this.fotoPerfilSeleccionada).subscribe({
       next: () => {
         this.cargando = false;
         this.mensajeExito = 'Perfil creado exitosamente';
@@ -343,6 +347,70 @@ export class CrearPerfilEmpleadoComponent implements OnInit {
   quitarCvSeleccionado(): void {
     this.cvSeleccionado = null;
     this.nombreCvSeleccionado = '';
+  }
+
+  onFotoPerfilSeleccionada(event: Event): void {
+    this.mensajeError = '';
+
+    const input = event.target as HTMLInputElement;
+    const archivo = input.files?.[0] ?? null;
+
+    if (!archivo) {
+      this.fotoPerfilSeleccionada = null;
+      this.nombreFotoPerfilSeleccionada = '';
+      this.previewFotoPerfil = '';
+      return;
+    }
+
+    const nombre = archivo.name.toLowerCase();
+    const tipo = archivo.type;
+
+    const esImagenValida = tipo === 'image/jpeg'
+      || tipo === 'image/jpg'
+      || tipo === 'image/png'
+      || tipo === 'image/webp'
+      || nombre.endsWith('.jpg')
+      || nombre.endsWith('.jpeg')
+      || nombre.endsWith('.png')
+      || nombre.endsWith('.webp');
+
+    if (!esImagenValida) {
+      this.fotoPerfilSeleccionada = null;
+      this.nombreFotoPerfilSeleccionada = '';
+      this.previewFotoPerfil = '';
+      this.mensajeError = 'La foto de perfil debe ser JPG, PNG o WEBP';
+      input.value = '';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const maxSizeBytes = 2 * 1024 * 1024;
+
+    if (archivo.size > maxSizeBytes) {
+      this.fotoPerfilSeleccionada = null;
+      this.nombreFotoPerfilSeleccionada = '';
+      this.previewFotoPerfil = '';
+      this.mensajeError = 'La foto de perfil no debe superar los 2 MB';
+      input.value = '';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.fotoPerfilSeleccionada = archivo;
+    this.nombreFotoPerfilSeleccionada = archivo.name;
+    this.previewFotoPerfil = URL.createObjectURL(archivo);
+    this.cdr.detectChanges();
+  }
+
+  quitarFotoPerfilSeleccionada(): void {
+    this.fotoPerfilSeleccionada = null;
+    this.nombreFotoPerfilSeleccionada = '';
+
+    if (this.previewFotoPerfil) {
+      URL.revokeObjectURL(this.previewFotoPerfil);
+    }
+
+    this.previewFotoPerfil = '';
   }
 
   cambiarTipoDocumento(): void {
