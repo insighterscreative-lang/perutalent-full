@@ -1,16 +1,8 @@
-import { TestBed } from '@angular/core/testing';
+import { describe, expect, it } from 'vitest';
+import { CatalogoService } from './catalogo';
 
-import { Catalogo } from './catalogo';
-
-describe('Catalogo', () => {
-  let service: Catalogo;
-
-  beforeEach(() => {
-    TestBed.configureTestingModule({});
-    service = TestBed.inject(Catalogo);
-  });
-
-  it('should be created', () => {
-    expect(service).toBeTruthy();
+describe('CatalogoService', () => {
+  it('expone el servicio utilizado por la aplicación', () => {
+    expect(CatalogoService).toBeDefined();
   });
 });

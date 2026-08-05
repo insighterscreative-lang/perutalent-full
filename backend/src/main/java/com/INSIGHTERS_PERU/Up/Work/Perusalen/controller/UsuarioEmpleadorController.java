@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
+import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.UsuarioEmpleadorPublicoResponseDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.UsuarioEmpleadorRequestDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.UsuarioEmpleadorResponseDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.response.ApiResponse;
@@ -96,10 +97,10 @@ public class UsuarioEmpleadorController {
 
 
     @GetMapping("/perfil-publico/{idEmpleador}")
-    public ResponseEntity<ApiResponse<UsuarioEmpleadorResponseDTO>> obtenerPerfilPublico(
+    public ResponseEntity<ApiResponse<UsuarioEmpleadorPublicoResponseDTO>> obtenerPerfilPublico(
             @PathVariable Long idEmpleador) {
 
-        UsuarioEmpleadorResponseDTO response =
+        UsuarioEmpleadorPublicoResponseDTO response =
                 usuarioEmpleadorService.obtenerPerfilPublico(idEmpleador);
 
         return ResponseEntity.ok(

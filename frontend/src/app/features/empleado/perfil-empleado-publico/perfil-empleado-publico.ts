@@ -3,7 +3,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { EmpleadoService } from 'src/app/core/services/empleado';
-import { EmpleadoResponse } from 'src/app/core/models/empleado';
+import { EmpleadoPublicoResponse } from 'src/app/core/models/empleado';
 import { TopbarComponent } from 'src/app/shared/components/topbar/topbar';
 
 @Component({
@@ -17,7 +17,7 @@ export class PerfilEmpleadoPublicoComponent implements OnInit {
 
   idEmpleado!: number;
 
-  perfil?: EmpleadoResponse;
+  perfil?: EmpleadoPublicoResponse;
 
   cargando = true;
   mensajeError = '';

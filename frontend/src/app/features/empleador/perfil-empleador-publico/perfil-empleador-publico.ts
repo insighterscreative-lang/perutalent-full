@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
-import { EmpleadorResponse } from 'src/app/core/models/empleador';
+import { EmpleadorPublicoResponse } from 'src/app/core/models/empleador';
 import { EmpleadorService } from 'src/app/core/services/empleador';
 import { TopbarComponent } from 'src/app/shared/components/topbar/topbar';
 
@@ -16,7 +16,7 @@ import { TopbarComponent } from 'src/app/shared/components/topbar/topbar';
 export class PerfilEmpleadorPublicoComponent implements OnInit {
 
   idEmpleador!: number;
-  perfil?: EmpleadorResponse;
+  perfil?: EmpleadorPublicoResponse;
 
   cargando = true;
   mensajeError = '';
@@ -125,11 +125,4 @@ export class PerfilEmpleadorPublicoComponent implements OnInit {
     window.open(url, '_blank');
   }
 
-  tieneContactoOpcional(): boolean {
-    return !!(
-      this.perfil?.sitioWeb ||
-      this.perfil?.correoContacto ||
-      this.perfil?.telefonoContacto
-    );
-  }
 }

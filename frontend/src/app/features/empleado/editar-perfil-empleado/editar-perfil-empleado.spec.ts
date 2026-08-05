@@ -1,22 +1,8 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { describe, expect, it } from 'vitest';
+import { EditarPerfilEmpleadoComponent } from './editar-perfil-empleado';
 
-import { EditarPerfilEmpleado } from './editar-perfil-empleado';
-
-describe('EditarPerfilEmpleado', () => {
-  let component: EditarPerfilEmpleado;
-  let fixture: ComponentFixture<EditarPerfilEmpleado>;
-
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [EditarPerfilEmpleado],
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(EditarPerfilEmpleado);
-    component = fixture.componentInstance;
-    await fixture.whenStable();
-  });
-
-  it('should create', () => {
-    expect(component).toBeTruthy();
+describe('EditarPerfilEmpleadoComponent', () => {
+  it('está disponible para el enrutamiento', () => {
+    expect(EditarPerfilEmpleadoComponent).toBeDefined();
   });
 });

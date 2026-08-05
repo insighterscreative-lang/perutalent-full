@@ -5,7 +5,6 @@ import java.time.LocalDate;
 import java.util.List;
 
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -44,7 +43,6 @@ public class OfertaLaboralRequestDTO {
     private BigDecimal montoTotal;
 
     @NotNull(message = "La fecha de término de postulación es obligatoria")
-    @FutureOrPresent(message = "La fecha de término de postulación no puede ser una fecha pasada")
     private LocalDate fechaTerminoPostulacion;
 
     @NotNull(message = "La categoría es obligatoria")

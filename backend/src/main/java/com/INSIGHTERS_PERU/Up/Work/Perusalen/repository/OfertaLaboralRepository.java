@@ -1,5 +1,6 @@
 package com.INSIGHTERS_PERU.Up.Work.Perusalen.repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,11 +15,22 @@ public interface OfertaLaboralRepository extends JpaRepository<OfertaLaboral, Lo
 
     List<OfertaLaboral> findByEstadoOferta(String estado);
 
-    @Query("SELECT o FROM OfertaLaboral o " +
+    @Query("SELECT DISTINCT o FROM OfertaLaboral o " +
            "LEFT JOIN FETCH o.habilidades h " +
            "LEFT JOIN FETCH h.idHabilidad " +
-           "WHERE o.estadoOferta = :estado")
-    List<OfertaLaboral> findActivasWithHabilidades(@Param("estado") String estado);
+           "WHERE o.estadoOferta = :estado " +
+           "AND o.fechaTerminoPostulacion >= :fechaActual " +
+           "ORDER BY o.fechaPublicacion DESC, o.id DESC")
+    List<OfertaLaboral> findActivasWithHabilidades(
+            @Param("estado") String estado,
+            @Param("fechaActual") LocalDate fechaActual
+    );
+
+    @Query("SELECT DISTINCT o FROM OfertaLaboral o " +
+           "LEFT JOIN FETCH o.habilidades h " +
+           "LEFT JOIN FETCH h.idHabilidad " +
+           "WHERE o.id IN :ids")
+    List<OfertaLaboral> findAllByIdWithHabilidades(@Param("ids") List<Long> ids);
 
     @Query("SELECT o FROM OfertaLaboral o " +
            "LEFT JOIN FETCH o.habilidades h " +
@@ -26,54 +38,34 @@ public interface OfertaLaboralRepository extends JpaRepository<OfertaLaboral, Lo
            "WHERE o.id = :id")
     Optional<OfertaLaboral> findByIdWithHabilidades(@Param("id") Long id);
 
-    int countByEmpleadoSeleccionadoIdAndEstadoOferta(
-            Long idEmpleado,
-            String estadoOferta
-    );
+    int countByEmpleadoSeleccionadoIdAndEstadoOferta(Long idEmpleado, String estadoOferta);
 
-    List<OfertaLaboral> findByEmpleadoSeleccionadoIdAndEstadoOferta(
-            Long idEmpleado,
-            String estadoOferta
-    );
+    List<OfertaLaboral> findByEmpleadoSeleccionadoIdAndEstadoOferta(Long idEmpleado, String estadoOferta);
 
-    int countByEmpleadoSeleccionadoIdAndEstadoOfertaIn(
-            Long idEmpleado,
-            List<String> estados
-    );
+    int countByEmpleadoSeleccionadoIdAndEstadoOfertaIn(Long idEmpleado, List<String> estados);
 
-    List<OfertaLaboral> findByEmpleadoSeleccionadoIdAndEstadoOfertaIn(
-            Long idEmpleado,
-            List<String> estados
-    );
+    List<OfertaLaboral> findByEmpleadoSeleccionadoIdAndEstadoOfertaIn(Long idEmpleado, List<String> estados);
 
-    int countByIdEmpleadorIdAndEstadoOferta(
+    int countByIdEmpleadorIdAndEstadoOferta(Long idEmpleador, String estadoOferta);
+
+    int countByIdEmpleadorIdAndEstadoOfertaAndFechaTerminoPostulacionGreaterThanEqual(
             Long idEmpleador,
-            String estadoOferta
+            String estadoOferta,
+            LocalDate fechaActual
     );
 
-    List<OfertaLaboral> findByIdEmpleadorIdAndEstadoOferta(
-            Long idEmpleador,
-            String estadoOferta
-    );
+    List<OfertaLaboral> findByIdEmpleadorIdAndEstadoOferta(Long idEmpleador, String estadoOferta);
 
-    int countByIdEmpleadorIdAndEstadoOfertaIn(
-            Long idEmpleador,
-            List<String> estados
-    );
+    int countByIdEmpleadorIdAndEstadoOfertaIn(Long idEmpleador, List<String> estados);
 
-    List<OfertaLaboral> findByIdEmpleadorIdAndEstadoOfertaIn(
-            Long idEmpleador,
-            List<String> estados
-    );
+    List<OfertaLaboral> findByIdEmpleadorIdAndEstadoOfertaIn(Long idEmpleador, List<String> estados);
 
     @Query("""
            SELECT DISTINCT o.idMod.nombreMod
            FROM OfertaLaboral o
            WHERE o.idEmpleador.id = :idEmpleador
            """)
-    List<String> findModalidadesContratacionByEmpleadorId(
-            @Param("idEmpleador") Long idEmpleador
-    );
+    List<String> findModalidadesContratacionByEmpleadorId(@Param("idEmpleador") Long idEmpleador);
 
     boolean existsByCodigoInterno(String codigoInterno);
 }

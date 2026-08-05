@@ -5,9 +5,13 @@
     <header class="postulacion-header">
       <div>
         <h1>Postular a la oferta</h1>
-        <p>
-          Selecciona el CV que deseas enviar para esta postulación.
+        <p *ngIf="oferta; else descripcionGenerica">
+          {{ oferta.titulo }} · Postulaciones hasta el {{ oferta.fechaTerminoPostulacion }}
         </p>
+
+        <ng-template #descripcionGenerica>
+          <p>Selecciona el CV que deseas enviar para esta postulación.</p>
+        </ng-template>
       </div>
 
       <div class="header-actions">
@@ -21,7 +25,41 @@
       </div>
     </header>
 
-    <section class="postulacion-card">
+    <div class="estado-oferta loading-state" *ngIf="cargandoOferta">
+      Cargando información de la oferta...
+    </div>
+
+    <div
+      class="estado-oferta unavailable-state"
+      *ngIf="!cargandoOferta && oferta && !ofertaDisponible">
+      <span>Postulación no disponible</span>
+      <h2>El periodo para postular a esta oferta ha finalizado</h2>
+      <p *ngIf="ofertaVencida">
+        La fecha límite fue el {{ oferta.fechaTerminoPostulacion }}.
+        Puedes volver al listado para revisar oportunidades vigentes.
+      </p>
+      <p *ngIf="!ofertaVencida">
+        Esta oferta ya no se encuentra abierta para recibir postulaciones.
+      </p>
+
+      <button type="button" class="btn-primary" (click)="volver()">
+        Ver ofertas disponibles
+      </button>
+    </div>
+
+    <div
+      class="estado-oferta unavailable-state"
+      *ngIf="!cargandoOferta && !oferta && mensajeError">
+      <span>Oferta no disponible</span>
+      <h2>No pudimos abrir esta oferta</h2>
+      <p>{{ mensajeError }}</p>
+
+      <button type="button" class="btn-primary" (click)="volver()">
+        Volver a ofertas
+      </button>
+    </div>
+
+    <section class="postulacion-card" *ngIf="!cargandoOferta && ofertaDisponible">
 
       <div class="card-title">
         <h2>Enviar postulación</h2>
@@ -97,6 +135,21 @@
           <strong>{{ cvSeleccionado.name }}</strong>
         </div>
 
+      </div>
+
+      <div class="privacy-notice">
+        <div class="privacy-icon">🔒</div>
+        <div>
+          <strong>Privacidad de tu postulación</strong>
+          <p>
+            Al postular, autorizas únicamente al empleador responsable de esta
+            oferta a consultar tu perfil, el CV seleccionado y tus datos de
+            contacto para comunicarse contigo sobre este proceso de selección.
+          </p>
+          <button type="button" (click)="irPoliticaPrivacidad()">
+            Ver política de privacidad
+          </button>
+        </div>
       </div>
 
       <div class="mensaje mensaje-error" *ngIf="mensajeError">

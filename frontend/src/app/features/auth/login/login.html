@@ -14,7 +14,6 @@
 
             <h2>Iniciar sesión</h2>
 
-            <!-- 🔥 FORMULARIO -->
             <form (ngSubmit)="login()">
 
                 <input 
@@ -37,8 +36,7 @@
                     (input)="error=''"
                 >
 
-                <!-- ⚠️ MENSAJE DE ERROR -->
-                <p *ngIf="error" style="color: red; margin-bottom: 10px;">
+                <p *ngIf="error" class="error">
                     {{ error }}
                 </p>
 
@@ -51,6 +49,10 @@
                 </button>
 
             </form>
+
+            <div class="forgot-link">
+                <a routerLink="/recuperar-password">¿Olvidaste tu contraseña?</a>
+            </div>
 
             <div class="link">
                 ¿No tienes cuenta? <a href="/register">Regístrate</a>

@@ -367,6 +367,8 @@ export class CrearOferta implements OnInit {
     this.cargando = true;
     this.cdr.detectChanges();
 
+    this.asegurarCodigoInterno();
+
     if (this.modoEdicion && this.idOfertaEditando) {
       this.editarOferta();
     } else {
@@ -488,11 +490,6 @@ export class CrearOferta implements OnInit {
       return false;
     }
 
-    if (!this.oferta.codigoInterno.trim()) {
-      this.mensajeError = 'El código interno es obligatorio.';
-      return false;
-    }
-
     if (!this.oferta.descripcion.trim()) {
       this.mensajeError = 'La descripción es obligatoria.';
       return false;
@@ -550,6 +547,18 @@ export class CrearOferta implements OnInit {
     const hoy = new Date();
 
     return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+  }
+
+  private asegurarCodigoInterno(): void {
+    if (this.oferta.codigoInterno && this.oferta.codigoInterno.trim()) {
+      return;
+    }
+
+    const fecha = new Date();
+    const stamp = `${fecha.getFullYear()}${String(fecha.getMonth() + 1).padStart(2, '0')}${String(fecha.getDate()).padStart(2, '0')}${String(fecha.getHours()).padStart(2, '0')}${String(fecha.getMinutes()).padStart(2, '0')}${String(fecha.getSeconds()).padStart(2, '0')}`;
+    const random = Math.random().toString(36).slice(2, 8).toUpperCase();
+
+    this.oferta.codigoInterno = `OF-${stamp}-${random}`;
   }
 
   private normalizarMensaje(texto: string): string {

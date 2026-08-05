@@ -37,8 +37,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return true;
         }
 
-        return path.equals("/usuarios/registro")
+        return ("GET".equalsIgnoreCase(method) && path.equals("/actuator/health"))
+                || ("POST".equalsIgnoreCase(method) && path.equals("/reclamos"))
+                || ("POST".equalsIgnoreCase(method) && path.equals("/reportes-problemas"))
+                || path.equals("/usuarios/registro")
                 || path.equals("/usuarios/login")
+                || path.equals("/usuarios/password/solicitar-codigo")
+                || path.equals("/usuarios/password/verificar-codigo")
+                || path.equals("/usuarios/password/restablecer")
 
                 || ("GET".equalsIgnoreCase(method) && path.startsWith("/catalogos/"))
 

@@ -407,16 +407,12 @@ export class SuscripcionesComponent implements OnInit {
       beneficios.push('Prioridad en la lista de postulantes');
     }
 
-    if (plan.ofertasDestacadas) {
-      beneficios.push('Ofertas destacadas con mayor visibilidad');
-    }
-
     if (this.esPremium(plan)) {
       beneficios.push('Renovación automática mensual mientras no canceles');
       beneficios.push('Puedes cancelar la suscripción desde tu cuenta');
     }
 
-    if (!plan.prioridadPostulante && !plan.ofertasDestacadas) {
+    if (!plan.prioridadPostulante) {
       beneficios.push('Acceso básico a la plataforma');
     }
 

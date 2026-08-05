@@ -101,8 +101,8 @@
           </div>
 
           <div class="mini-stat">
-            <strong>{{ obtenerTextoCantidadPlural(miUso.recomendacionesRestantes) }}</strong>
-            <span>recomendaciones restantes</span>
+            <strong>{{ obtenerTextoCantidad(miUso.maxRecomendaciones) }}</strong>
+            <span>recomendaciones por consulta</span>
           </div>
 
           <div class="mini-stat">
@@ -178,22 +178,6 @@
               <div
                 class="bar-fill"
                 [style.width.%]="obtenerPorcentajeUsado(miUso.postulacionesUsadas, miUso.maxPostulacionesMes)">
-              </div>
-            </div>
-          </div>
-
-          <div class="usage-item">
-            <div class="usage-head">
-              <strong>Recomendaciones</strong>
-              <span>
-                {{ miUso.recomendacionesVistas }} /
-                {{ obtenerTextoCantidad(miUso.maxRecomendaciones) }}
-              </span>
-            </div>
-            <div class="bar">
-              <div
-                class="bar-fill"
-                [style.width.%]="obtenerPorcentajeUsado(miUso.recomendacionesVistas, miUso.maxRecomendaciones)">
               </div>
             </div>
           </div>

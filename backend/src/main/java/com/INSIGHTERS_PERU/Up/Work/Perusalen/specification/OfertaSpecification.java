@@ -1,6 +1,7 @@
 package com.INSIGHTERS_PERU.Up.Work.Perusalen.specification;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 import jakarta.persistence.criteria.Join;
@@ -16,6 +17,11 @@ public class OfertaSpecification {
     public static Specification<OfertaLaboral> estadoActiva() {
         return (root, query, cb) ->
                 cb.equal(root.get("estadoOferta"), "ABIERTA");
+    }
+
+    public static Specification<OfertaLaboral> conPostulacionVigente(LocalDate fechaActual) {
+        return (root, query, cb) ->
+                cb.greaterThanOrEqualTo(root.get("fechaTerminoPostulacion"), fechaActual);
     }
 
     public static Specification<OfertaLaboral> conCategorias(List<Long> categorias) {
@@ -72,4 +78,23 @@ public class OfertaSpecification {
         );
     };
 }
+    public static Specification<OfertaLaboral> delEmpleador(Long idEmpleador) {
+        return (root, query, cb) ->
+                cb.equal(root.get("idEmpleador").get("id"), idEmpleador);
+    }
+
+    public static Specification<OfertaLaboral> activasVisibles(LocalDate fechaActual) {
+        return estadoActiva().and(conPostulacionVigente(fechaActual));
+    }
+
+    public static Specification<OfertaLaboral> finalizadasVisibles(LocalDate fechaActual) {
+        return (root, query, cb) -> cb.or(
+                cb.equal(root.get("estadoOferta"), "FINALIZADA"),
+                cb.and(
+                        cb.equal(root.get("estadoOferta"), "ABIERTA"),
+                        cb.lessThan(root.get("fechaTerminoPostulacion"), fechaActual)
+                )
+        );
+    }
+
 }

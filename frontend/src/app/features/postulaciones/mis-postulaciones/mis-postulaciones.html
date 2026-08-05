@@ -1,0 +1,387 @@
+<app-topbar></app-topbar>
+
+<main class="postulaciones-page">
+  <div class="postulaciones-container">
+
+    <header class="page-header">
+      <div>
+        <span class="eyebrow">Seguimiento de procesos</span>
+        <h1>Mis postulaciones</h1>
+        <p>
+          Revisa las ofertas a las que postulaste, el estado informado por el
+          empleador y el CV que enviaste en cada proceso.
+        </p>
+      </div>
+
+      <div class="header-actions">
+        <button type="button" class="btn-secondary" (click)="volverPerfil()">
+          Volver al perfil
+        </button>
+
+        <button type="button" class="btn-primary" (click)="explorarOfertas()">
+          Explorar ofertas
+        </button>
+      </div>
+    </header>
+
+    <section class="summary" *ngIf="!cargando && !mensajeError">
+      <div class="summary-card">
+        <span>Total de postulaciones</span>
+        <strong>{{ totalElementos }}</strong>
+      </div>
+
+      <div class="summary-note">
+        Los estados mostrados corresponden al seguimiento dentro de PeruTalent.
+        Las entrevistas, acuerdos y contrataciones se realizan fuera de la plataforma.
+      </div>
+    </section>
+
+    <div class="loading-box" *ngIf="cargando">
+      Cargando tus postulaciones...
+    </div>
+
+    <div class="error-box" *ngIf="!cargando && mensajeError">
+      <span>{{ mensajeError }}</span>
+      <button type="button" (click)="cargarPostulaciones(paginaActual)">
+        Reintentar
+      </button>
+    </div>
+
+    <section
+      class="empty-box"
+      *ngIf="!cargando && !mensajeError && postulaciones.length === 0">
+      <div class="empty-icon">📄</div>
+      <h2>Aún no tienes postulaciones</h2>
+      <p>
+        Explora las ofertas disponibles y postula utilizando el CV de tu perfil
+        o un archivo preparado para una oferta específica.
+      </p>
+      <button type="button" class="btn-primary" (click)="explorarOfertas()">
+        Ver ofertas laborales
+      </button>
+    </section>
+
+    <section
+      class="postulaciones-grid"
+      *ngIf="!cargando && !mensajeError && postulaciones.length > 0">
+
+      <article class="postulacion-card" *ngFor="let postulacion of postulaciones">
+        <div class="card-top">
+          <div>
+            <span
+              class="estado-postulacion"
+              [ngClass]="obtenerClaseEstado(postulacion.estadoPostulacion)">
+              {{ obtenerTextoEstado(postulacion.estadoPostulacion) }}
+            </span>
+
+            <h2>{{ postulacion.tituloOferta }}</h2>
+
+            <button
+              type="button"
+              class="employer-link"
+              [disabled]="!postulacion.idEmpleador"
+              (click)="verPerfilEmpleador(postulacion)">
+              {{ postulacion.empleador || 'Empleador no disponible' }}
+            </button>
+          </div>
+
+          <span
+            class="estado-oferta"
+            [class.finalizada]="postulacion.ofertaFinalizada">
+            {{ obtenerTextoDisponibilidadOferta(postulacion) }}
+          </span>
+        </div>
+
+        <div class="meta-grid">
+          <div>
+            <span>Fecha de postulación</span>
+            <strong>{{ formatearFecha(postulacion.fechaPostulacion) }}</strong>
+          </div>
+
+          <div>
+            <span>Fecha límite</span>
+            <strong>{{ formatearFecha(postulacion.fechaTerminoPostulacion) }}</strong>
+          </div>
+
+          <div *ngIf="postulacion.distrito">
+            <span>Distrito</span>
+            <strong>{{ postulacion.distrito }}</strong>
+          </div>
+
+          <div *ngIf="postulacion.modalidad">
+            <span>Modalidad</span>
+            <strong>{{ postulacion.modalidad }}</strong>
+          </div>
+        </div>
+
+        <div class="chips">
+          <span *ngIf="postulacion.categoria">{{ postulacion.categoria }}</span>
+          <span *ngIf="postulacion.experiencia">{{ postulacion.experiencia }}</span>
+          <span *ngIf="postulacion.tipoDuracion">{{ postulacion.tipoDuracion }}</span>
+        </div>
+
+        <div class="card-actions">
+          <button
+            type="button"
+            class="btn-secondary"
+            (click)="abrirDetalle(postulacion)">
+            Ver detalle
+          </button>
+
+          <button
+            type="button"
+            class="btn-cv"
+            [disabled]="!postulacion.cvDisponible || abriendoCvId !== null"
+            (click)="abrirCv(postulacion)">
+            {{
+              abriendoCvId === postulacion.idPostulacion
+                ? 'Abriendo CV...'
+                : postulacion.cvDisponible
+                  ? 'Ver CV enviado'
+                  : 'CV no disponible'
+            }}
+          </button>
+        </div>
+      </article>
+    </section>
+
+    <nav
+      class="pagination"
+      aria-label="Paginación de postulaciones"
+      *ngIf="!cargando && !mensajeError && totalPaginas > 1">
+      <button
+        type="button"
+        [disabled]="primeraPagina"
+        (click)="cargarPostulaciones(paginaActual - 1)">
+        Anterior
+      </button>
+
+      <button
+        type="button"
+        class="page-number"
+        *ngFor="let pagina of paginasVisibles"
+        [class.active]="pagina === paginaActual"
+        [attr.aria-current]="pagina === paginaActual ? 'page' : null"
+        (click)="cargarPostulaciones(pagina)">
+        {{ pagina + 1 }}
+      </button>
+
+      <button
+        type="button"
+        [disabled]="ultimaPagina"
+        (click)="cargarPostulaciones(paginaActual + 1)">
+        Siguiente
+      </button>
+    </nav>
+
+  </div>
+</main>
+
+<div
+  class="drawer-overlay"
+  [class.open]="postulacionSeleccionada"
+  (click)="cerrarDetalle()">
+</div>
+
+<aside class="drawer" [class.open]="postulacionSeleccionada">
+  <ng-container *ngIf="postulacionSeleccionada as postulacion">
+    <div class="d-topbar">
+      <button type="button" class="back" (click)="cerrarDetalle()">
+        <span class="arrow">←</span>
+        Volver
+      </button>
+
+      <button
+        type="button"
+        class="opennew"
+        [disabled]="!postulacion.cvDisponible || abriendoCvId !== null"
+        (click)="abrirCv(postulacion)">
+        {{ abriendoCvId === postulacion.idPostulacion ? 'Abriendo CV...' : 'Ver CV enviado' }}
+      </button>
+    </div>
+
+    <div class="d-content">
+      <div class="d-left">
+        <h2 class="d-title">
+          {{ postulacion.tituloOferta }}
+        </h2>
+
+        <div class="d-meta">
+          <button
+            type="button"
+            class="company-pill"
+            [disabled]="!postulacion.idEmpleador"
+            (click)="verPerfilEmpleador(postulacion)">
+            Ver empresa: {{ postulacion.empleador || 'Empleador no disponible' }}
+          </button>
+
+          <span>{{ postulacion.distrito || 'Ubicación no indicada' }}</span>
+
+          <span>
+            {{ postulacion.montoTotal !== null ? 'S/ ' + postulacion.montoTotal : 'Monto no indicado' }}
+          </span>
+        </div>
+
+        <div class="section">
+          <h3 class="sec-title">Descripción</h3>
+          <p class="p">
+            {{ postulacion.descripcionOferta || 'Sin descripción registrada.' }}
+          </p>
+        </div>
+
+        <div class="section" *ngIf="postulacion.tareasEspecificas">
+          <h3 class="sec-title">Tareas específicas</h3>
+          <p class="p">
+            {{ postulacion.tareasEspecificas }}
+          </p>
+        </div>
+
+        <div class="section">
+          <h3 class="sec-title">Información de la oferta</h3>
+
+          <div class="chipslight">
+            <span class="chiplight" *ngIf="postulacion.categoria">
+              {{ postulacion.categoria }}
+            </span>
+
+            <span class="chiplight" *ngIf="postulacion.experiencia">
+              {{ postulacion.experiencia }}
+            </span>
+
+            <span class="chiplight" *ngIf="postulacion.modalidad">
+              {{ postulacion.modalidad }}
+            </span>
+
+            <span class="chiplight" *ngIf="postulacion.tipoDuracion">
+              {{ postulacion.cantidadDuracion || '' }} {{ postulacion.tipoDuracion }}
+            </span>
+
+            <span class="chiplight">
+              Publicado: {{ formatearFecha(postulacion.fechaPublicacion) }}
+            </span>
+
+            <span class="chiplight">
+              Postulaciones hasta: {{ formatearFecha(postulacion.fechaTerminoPostulacion) }}
+            </span>
+          </div>
+        </div>
+
+        <div
+          class="section"
+          *ngIf="postulacion.habilidades && postulacion.habilidades.length">
+          <h3 class="sec-title">Habilidades requeridas</h3>
+
+          <div class="chipslight">
+            <span class="chiplight" *ngFor="let habilidad of postulacion.habilidades">
+              {{ habilidad.nombre }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-right">
+        <div class="applyBox">
+          <div class="postulation-heading">
+            <span
+              class="estado-postulacion"
+              [ngClass]="obtenerClaseEstado(postulacion.estadoPostulacion)">
+              {{ obtenerTextoEstado(postulacion.estadoPostulacion) }}
+            </span>
+
+            <h3>Tu postulación</h3>
+            <p>
+              Enviada el {{ formatearFecha(postulacion.fechaPostulacion) }}.
+            </p>
+          </div>
+
+          <div
+            class="offer-status-box compact"
+            [class.finalizada]="postulacion.ofertaFinalizada">
+            <strong>{{ obtenerTextoDisponibilidadOferta(postulacion) }}</strong>
+
+            <span *ngIf="postulacion.ofertaVencida">
+              La fecha límite fue {{ formatearFecha(postulacion.fechaTerminoPostulacion) }}.
+            </span>
+
+            <span *ngIf="!postulacion.ofertaFinalizada">
+              La oferta todavía se encuentra disponible.
+            </span>
+          </div>
+
+          <div class="applyActions">
+            <button
+              class="applyBtn primary"
+              type="button"
+              [disabled]="!postulacion.cvDisponible || abriendoCvId !== null"
+              (click)="abrirCv(postulacion)">
+              {{
+                abriendoCvId === postulacion.idPostulacion
+                  ? 'Abriendo CV...'
+                  : postulacion.cvDisponible
+                    ? 'Ver CV enviado'
+                    : 'CV no disponible'
+              }}
+            </button>
+
+            <button
+              class="applyBtn company"
+              type="button"
+              [disabled]="!postulacion.idEmpleador"
+              (click)="verPerfilEmpleador(postulacion)">
+              Ver perfil de empresa
+            </button>
+
+            <button class="applyBtn secondary" type="button" (click)="cerrarDetalle()">
+              Cerrar
+            </button>
+          </div>
+        </div>
+
+        <div class="rightBlock">
+          <p class="rbTitle">Resumen</p>
+
+          <div class="rbRow">
+            <span>Monto</span>
+            <strong>
+              {{ postulacion.montoTotal !== null ? 'S/ ' + postulacion.montoTotal : 'No indicado' }}
+            </strong>
+          </div>
+
+          <div class="rbRow">
+            <span>Categoría</span>
+            <strong>{{ postulacion.categoria || 'No indicada' }}</strong>
+          </div>
+
+          <div class="rbRow">
+            <span>Experiencia</span>
+            <strong>{{ postulacion.experiencia || 'No indicada' }}</strong>
+          </div>
+
+          <div class="rbRow">
+            <span>Ubicación</span>
+            <strong>{{ postulacion.distrito || 'No indicada' }}</strong>
+          </div>
+        </div>
+
+        <div class="rightBlock">
+          <p class="rbTitle">Seguimiento</p>
+
+          <div class="rbRow">
+            <span>Postulaste</span>
+            <strong>{{ formatearFecha(postulacion.fechaPostulacion) }}</strong>
+          </div>
+
+          <div class="rbRow">
+            <span>Estado</span>
+            <strong>{{ obtenerTextoEstado(postulacion.estadoPostulacion) }}</strong>
+          </div>
+
+          <div class="rbRow">
+            <span>Oferta</span>
+            <strong>{{ obtenerTextoDisponibilidadOferta(postulacion) }}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</aside>

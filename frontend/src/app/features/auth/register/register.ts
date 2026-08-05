@@ -1,13 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { Component, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from 'src/app/core/services/auth';
+import { cumplePoliticaPassword } from 'src/app/core/validation/password-policy';
 
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './register.html',
   styleUrl: './register.scss'
 })
@@ -18,6 +19,8 @@ export class Register {
   password: string = '';
   confirmPassword: string = '';
   tipo: string = '';
+  aceptaTerminos: boolean = false;
+  mostrarResumenTerminos: boolean = false;
 
   loading: boolean = false;
   error: string = '';
@@ -43,8 +46,8 @@ export class Register {
       return;
     }
 
-    if (this.password.length < 6) {
-      this.error = 'La contraseña debe tener al menos 6 caracteres';
+    if (!cumplePoliticaPassword(this.password)) {
+      this.error = 'La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial (@$!%*?&)';
       return;
     }
 
@@ -58,13 +61,19 @@ export class Register {
       return;
     }
 
+    if (!this.aceptaTerminos) {
+      this.error = 'Debes aceptar los Términos y Condiciones y la Política de Privacidad';
+      return;
+    }
+
     this.loading = true;
 
     const payload = {
       email: this.email,
       password: this.password,
       esEmpleado: this.tipo === 'empleado',
-      esEmpleador: this.tipo === 'empleador'
+      esEmpleador: this.tipo === 'empleador',
+      aceptaTerminos: this.aceptaTerminos
     };
 
     this.authService.register(payload).subscribe({
@@ -134,6 +143,30 @@ export class Register {
         this.cdr.detectChanges();
       }
     });
+  }
+
+  get passwordTieneLongitud(): boolean {
+    return this.password.length >= 8;
+  }
+
+  get passwordTieneMayuscula(): boolean {
+    return /[A-Z]/.test(this.password);
+  }
+
+  get passwordTieneMinuscula(): boolean {
+    return /[a-z]/.test(this.password);
+  }
+
+  get passwordTieneNumero(): boolean {
+    return /\d/.test(this.password);
+  }
+
+  get passwordTieneEspecial(): boolean {
+    return /[@$!%*?&]/.test(this.password);
+  }
+
+  get passwordValida(): boolean {
+    return cumplePoliticaPassword(this.password);
   }
 
   private tokenTieneRol(token: string, rol: string): boolean {

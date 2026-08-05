@@ -32,7 +32,7 @@
 
     </header>
 
-    <div class="plan-limit-box" *ngIf="!cargando && perfil && limiteOfertasAlcanzado">
+    <div class="plan-limit-box" *ngIf="!cargando && limiteOfertasAlcanzado">
       <div>
         <span class="limit-label">Límite alcanzado</span>
         <h3>No puedes crear más ofertas activas con tu plan actual</h3>
@@ -54,18 +54,22 @@
       {{ mensajeError }}
     </div>
 
-    <ng-container *ngIf="!cargando && perfil">
+    <div class="success-box" *ngIf="!cargando && mensajeExito">
+      {{ mensajeExito }}
+    </div>
+
+    <ng-container *ngIf="!cargando">
 
       <section class="summary-grid">
 
         <div class="summary-card">
           <span>Trabajos activos</span>
-          <strong>{{ ofertasActivas.length }}</strong>
+          <strong>{{ totalActivos }}</strong>
         </div>
 
         <div class="summary-card">
           <span>Trabajos finalizados</span>
-          <strong>{{ ofertasFinalizadas.length }}</strong>
+          <strong>{{ totalFinalizados }}</strong>
         </div>
 
       </section>
@@ -92,7 +96,11 @@
 
         </div>
 
-        <div class="job-list" *ngIf="tabActiva === 'activos'">
+        <div class="list-loading" *ngIf="cargandoOfertas">
+          Cargando página de ofertas...
+        </div>
+
+        <div class="job-list" *ngIf="tabActiva === 'activos' && !cargandoOfertas">
 
           <div class="empty" *ngIf="ofertasActivas.length === 0">
             No tienes ofertas activas actualmente.
@@ -108,7 +116,7 @@
               </div>
 
               <span class="state active">
-                {{ oferta.estadoOferta }}
+                {{ obtenerTextoEstadoOferta(oferta) }}
               </span>
 
             </div>
@@ -156,7 +164,7 @@
 
         </div>
 
-        <div class="job-list" *ngIf="tabActiva === 'finalizados'">
+        <div class="job-list" *ngIf="tabActiva === 'finalizados' && !cargandoOfertas">
 
           <div class="empty" *ngIf="ofertasFinalizadas.length === 0">
             Aún no tienes ofertas finalizadas.
@@ -210,6 +218,28 @@
 
           </article>
 
+        </div>
+
+        <div class="pagination" *ngIf="!cargandoOfertas && totalPaginasActual > 1">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            [disabled]="paginaActualIndice === 0"
+            (click)="cambiarPagina(paginaActualIndice - 1)">
+            Anterior
+          </button>
+
+          <span>
+            Página {{ paginaActualVisible }} de {{ totalPaginasActual }}
+          </span>
+
+          <button
+            type="button"
+            class="btn btn-secondary"
+            [disabled]="paginaActualIndice + 1 >= totalPaginasActual"
+            (click)="cambiarPagina(paginaActualIndice + 1)">
+            Siguiente
+          </button>
         </div>
 
       </section>
@@ -295,11 +325,15 @@
           </span>
 
           <span class="chiplight">
-            Estado: {{ ofertaSeleccionada.estadoOferta }}
+            Estado: {{ obtenerTextoEstadoOferta(ofertaSeleccionada) }}
           </span>
 
           <span class="chiplight" *ngIf="ofertaSeleccionada.fechaPublicacion">
             Publicado: {{ ofertaSeleccionada.fechaPublicacion }}
+          </span>
+
+          <span class="chiplight" *ngIf="ofertaSeleccionada.fechaTerminoPostulacion">
+            Postulaciones hasta: {{ ofertaSeleccionada.fechaTerminoPostulacion }}
           </span>
         </div>
       </div>
@@ -318,7 +352,8 @@
         <h3 class="sec-title">Oferta finalizada</h3>
 
         <p class="p">
-          Esta oferta ya fue finalizada, por lo que no puede ser editada desde esta pantalla.
+          Esta oferta ya fue finalizada, ya sea manualmente o porque terminó su periodo de postulación.
+          Puedes seguir revisando los postulantes recibidos, pero no se aceptan nuevas postulaciones.
         </p>
       </div>
 
@@ -340,13 +375,32 @@
             class="applyBtn secondary"
             type="button"
             *ngIf="puedeEditar(ofertaSeleccionada)"
+            [disabled]="gestionandoOferta"
             (click)="editarOferta(ofertaSeleccionada)">
             Editar oferta
           </button>
 
           <button
+            class="applyBtn warning"
+            type="button"
+            *ngIf="puedeEditar(ofertaSeleccionada)"
+            [disabled]="gestionandoOferta"
+            (click)="finalizarOfertaDesdeDetalle(ofertaSeleccionada)">
+            {{ gestionandoOferta ? 'Procesando...' : 'Finalizar oferta' }}
+          </button>
+
+          <button
+            class="applyBtn danger"
+            type="button"
+            [disabled]="gestionandoOferta"
+            (click)="eliminarOferta(ofertaSeleccionada)">
+            {{ gestionandoOferta ? 'Procesando...' : 'Eliminar oferta' }}
+          </button>
+
+          <button
             class="applyBtn secondary"
             type="button"
+            [disabled]="gestionandoOferta"
             (click)="cerrarDetalle()">
             Cerrar
           </button>
@@ -393,7 +447,7 @@
 
         <div class="rbRow">
           <span>Estado</span>
-          <strong>{{ ofertaSeleccionada.estadoOferta }}</strong>
+          <strong>{{ obtenerTextoEstadoOferta(ofertaSeleccionada) }}</strong>
         </div>
 
       </div>

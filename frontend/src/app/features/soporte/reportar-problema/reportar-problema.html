@@ -1,0 +1,171 @@
+<app-topbar></app-topbar>
+
+<main class="support-page">
+  <section class="support-hero">
+    <span class="support-badge">Soporte técnico</span>
+    <h1>Reportar un problema</h1>
+    <p>
+      Cuéntanos qué ocurrió y en qué parte de PeruTalent. El reporte quedará
+      guardado y será enviado al equipo para su revisión.
+    </p>
+  </section>
+
+  <section class="result-card success-card" *ngIf="resultado">
+    <span class="result-icon">✓</span>
+    <div>
+      <h2>Problema registrado correctamente</h2>
+      <p>
+        Tu código de seguimiento es
+        <strong>{{ resultado.codigoReporte }}</strong>.
+        También enviamos una constancia al correo indicado.
+      </p>
+      <span class="status-pill">Estado: {{ resultado.estado }}</span>
+    </div>
+  </section>
+
+  <section class="result-card error-card" *ngIf="error">
+    <span class="result-icon">!</span>
+    <div>
+      <h2>No se pudo registrar el problema</h2>
+      <p>{{ error }}</p>
+    </div>
+  </section>
+
+  <section class="support-card">
+    <div class="support-header">
+      <div>
+        <h2>Información del problema</h2>
+        <p>
+          No incluyas contraseñas, códigos de recuperación, datos de tarjetas
+          ni otras credenciales privadas.
+        </p>
+      </div>
+      <span class="support-code">Reporte técnico</span>
+    </div>
+
+    <form
+      #problemaForm="ngForm"
+      class="support-form"
+      novalidate
+      (ngSubmit)="enviar(problemaForm)">
+
+      <div class="form-grid">
+        <label>
+          Nombre completo *
+          <input
+            type="text"
+            name="nombreCompleto"
+            [(ngModel)]="reporte.nombreCompleto"
+            minlength="3"
+            maxlength="120"
+            placeholder="Ej. Juan Pérez"
+            required>
+        </label>
+
+        <label>
+          Correo electrónico *
+          <input
+            type="email"
+            name="email"
+            [(ngModel)]="reporte.email"
+            maxlength="150"
+            placeholder="correo@ejemplo.com"
+            required
+            email>
+        </label>
+
+        <label>
+          Tipo de problema *
+          <select
+            name="tipoProblema"
+            [(ngModel)]="reporte.tipoProblema"
+            required>
+            <option value="">Selecciona una opción</option>
+            <option value="ACCESO_CUENTA">Acceso o cuenta</option>
+            <option value="OFERTAS">Ofertas laborales</option>
+            <option value="POSTULACIONES">Postulaciones</option>
+            <option value="PERFIL">Perfil</option>
+            <option value="PAGOS_SUSCRIPCION">Pagos o suscripción</option>
+            <option value="ARCHIVOS_CV">Archivos o CV</option>
+            <option value="OTRO">Otro</option>
+          </select>
+        </label>
+
+        <label>
+          Pantalla donde ocurrió *
+          <input
+            type="text"
+            name="pantalla"
+            [(ngModel)]="reporte.pantalla"
+            minlength="2"
+            maxlength="150"
+            placeholder="Ej. Mis postulaciones"
+            required>
+        </label>
+      </div>
+
+      <label>
+        Describe el problema *
+        <textarea
+          name="descripcion"
+          [(ngModel)]="reporte.descripcion"
+          rows="6"
+          minlength="10"
+          maxlength="2500"
+          placeholder="Explica qué esperabas que ocurriera y qué ocurrió realmente"
+          required></textarea>
+        <small>{{ reporte.descripcion.length }}/2500</small>
+      </label>
+
+      <label>
+        Pasos realizados antes del problema
+        <textarea
+          name="pasosReproducir"
+          [(ngModel)]="reporte.pasosReproducir"
+          rows="5"
+          maxlength="2000"
+          placeholder="Ej. Inicié sesión, abrí una oferta y presioné Postular"></textarea>
+        <small>{{ (reporte.pasosReproducir || '').length }}/2000</small>
+      </label>
+
+      <label>
+        Información adicional
+        <textarea
+          name="informacionAdicional"
+          [(ngModel)]="reporte.informacionAdicional"
+          rows="4"
+          maxlength="1500"
+          placeholder="Mensaje mostrado, navegador utilizado u otra información útil"></textarea>
+        <small>{{ (reporte.informacionAdicional || '').length }}/1500</small>
+      </label>
+
+      <label class="check-row">
+        <input
+          type="checkbox"
+          name="aceptaDeclaracion"
+          [(ngModel)]="reporte.aceptaDeclaracion"
+          required>
+        <span>
+          Confirmo que la información es correcta y autorizo su uso para revisar
+          este problema técnico.
+        </span>
+      </label>
+
+      <div class="support-note">
+        <strong>Consejo:</strong>
+        Indica los pasos exactos para que el equipo pueda reproducir el problema más fácilmente.
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" [disabled]="enviando">
+          {{ enviando ? 'Registrando problema...' : 'Enviar reporte' }}
+        </button>
+      </div>
+    </form>
+
+    <p class="support-footer-note">
+      Los reportes se guardan en la plataforma y se envían a
+      <a href="mailto:insighters.creative@gmail.com">insighters.creative@gmail.com</a>.
+    </p>
+  </section>
+</main>

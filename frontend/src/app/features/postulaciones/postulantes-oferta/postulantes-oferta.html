@@ -58,9 +58,9 @@
             <label>Estado de postulación</label>
             <select [(ngModel)]="filtroEstado">
               <option value="TODOS">Todos</option>
-              <option value="PENDIENTE">Pendiente</option>
-              <option value="ACEPTADA">Aceptada</option>
-              <option value="RECHAZADA">Rechazada</option>
+              <option value="PENDIENTE">Pendiente de revisión</option>
+              <option value="ACEPTADA">Preseleccionado</option>
+              <option value="RECHAZADA">No seleccionado</option>
             </select>
           </div>
 
@@ -123,32 +123,43 @@
 
         <div class="filter-actions">
           <span class="filter-result">
-            Mostrando {{ postulantesFiltrados.length }} de {{ postulantes.length }} postulantes
+            Mostrando {{ postulantes.length }} de {{ totalElementos }} postulantes
           </span>
 
-          <button
-            type="button"
-            class="btn-secondary"
-            (click)="limpiarFiltros()">
-            Limpiar
-          </button>
+          <div class="filter-buttons">
+            <button
+              type="button"
+              class="btn-primary"
+              [disabled]="cargando || cargandoFiltros"
+              (click)="aplicarFiltros()">
+              Aplicar filtros
+            </button>
+
+            <button
+              type="button"
+              class="btn-secondary"
+              [disabled]="cargando"
+              (click)="limpiarFiltros()">
+              Limpiar
+            </button>
+          </div>
         </div>
       </aside>
 
       <main class="postulantes-main">
         <div
           class="empty-box"
-          *ngIf="postulantesFiltrados.length === 0">
+          *ngIf="postulantes.length === 0">
           No hay postulantes que coincidan con los filtros seleccionados.
         </div>
 
         <section
           class="postulantes-grid"
-          *ngIf="postulantesFiltrados.length > 0">
+          *ngIf="postulantes.length > 0">
 
           <article
             class="postulante-card"
-            *ngFor="let postulante of postulantesFiltrados"
+            *ngFor="let postulante of postulantes"
             [class.postulante-premium]="esPremium(postulante)">
 
             <div class="premium-ribbon" *ngIf="esPremium(postulante)">
@@ -179,7 +190,7 @@
                 [class.estado-pendiente]="postulante.estadoPostulacion === 'PENDIENTE'"
                 [class.estado-aceptada]="postulante.estadoPostulacion === 'ACEPTADA'"
                 [class.estado-rechazada]="postulante.estadoPostulacion === 'RECHAZADA'">
-                {{ postulante.estadoPostulacion }}
+                {{ obtenerTextoEstado(postulante.estadoPostulacion) }}
               </span>
             </div>
 
@@ -228,7 +239,7 @@
                 class="btn-primary"
                 (click)="aceptarPostulacion(postulante)"
                 [disabled]="postulante.estadoPostulacion !== 'PENDIENTE' || accionandoId === postulante.idPostulacion">
-                {{ accionandoId === postulante.idPostulacion ? 'Procesando...' : 'Aceptar' }}
+                {{ accionandoId === postulante.idPostulacion ? 'Procesando...' : 'Preseleccionar' }}
               </button>
 
               <button
@@ -236,7 +247,7 @@
                 class="btn-danger"
                 (click)="rechazarPostulacion(postulante)"
                 [disabled]="postulante.estadoPostulacion !== 'PENDIENTE' || accionandoId === postulante.idPostulacion">
-                Rechazar
+                No seleccionar
               </button>
 
               <button
@@ -256,6 +267,26 @@
             </div>
           </article>
         </section>
+
+        <div class="pagination" *ngIf="totalPaginas > 1">
+          <button
+            type="button"
+            class="btn-secondary"
+            [disabled]="primeraPagina || cargando"
+            (click)="cambiarPagina(paginaActual - 1)">
+            Anterior
+          </button>
+
+          <span>Página {{ paginaVisible }} de {{ totalPaginas }}</span>
+
+          <button
+            type="button"
+            class="btn-secondary"
+            [disabled]="ultimaPagina || cargando"
+            (click)="cambiarPagina(paginaActual + 1)">
+            Siguiente
+          </button>
+        </div>
       </main>
 
     </div>

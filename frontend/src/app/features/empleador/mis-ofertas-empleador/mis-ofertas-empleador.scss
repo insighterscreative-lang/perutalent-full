@@ -29,7 +29,7 @@ $red: #ef4444;
 .btn-secondary { background: #0f172a; border: 1px solid rgba(148, 163, 184, 0.28); color: white; box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12); }
 
 .summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-bottom: 22px; }
-.summary-card, .card, .job-item, .loading, .error-box, .empty {
+.summary-card, .card, .job-item, .loading, .error-box, .success-box, .empty {
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid rgba(148, 163, 184, 0.24);
   color: $ink;
@@ -54,14 +54,21 @@ $red: #ef4444;
 
 .state { height: fit-content; padding: 8px 12px; border-radius: 999px; font-size: 12px; font-weight: 950; white-space: nowrap; }
 .state.active { color: #047857; background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.22); }
+.state.active.expired { color: #991b1b; background: rgba(239, 68, 68, 0.11); border-color: rgba(239, 68, 68, 0.26); }
 .state.finished { color: #1e40af; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.22); }
+
+.expired-section {
+  border: 1px solid rgba(239, 68, 68, 0.22);
+  background: rgba(254, 242, 242, 0.82);
+}
 
 .job-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
 .job-meta span { padding: 8px 12px; border-radius: 999px; background: rgba(37, 99, 235, 0.09); border: 1px solid rgba(37, 99, 235, 0.16); color: #1e40af; font-size: 12px; font-weight: 900; }
 .job-actions { display: flex; justify-content: flex-end; gap: 12px; flex-wrap: wrap; }
 
-.loading, .error-box, .empty { padding: 20px; border-radius: 18px; color: #334155; font-weight: 750; }
+.loading, .error-box, .success-box, .empty { padding: 20px; border-radius: 18px; color: #334155; font-weight: 750; }
 .error-box { color: #b91c1c; background: #fff7f7; border-color: rgba(239, 68, 68, 0.18); }
+.success-box { color: #047857; background: #f0fdf4; border-color: rgba(34, 197, 94, 0.22); margin-bottom: 18px; }
 
 .drawer-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.58); opacity: 0; pointer-events: none; transition: opacity 0.18s ease; z-index: 60; }
 .drawer-overlay.open { opacity: 1; pointer-events: auto; }
@@ -88,6 +95,9 @@ $red: #ef4444;
 .applyBtn { border: none; border-radius: 13px; padding: 12px 14px; cursor: pointer; font-weight: 950; font-size: 14px; }
 .applyBtn.primary { background: linear-gradient(135deg, $green, $blue); color: white; box-shadow: 0 12px 22px rgba(59, 130, 246, 0.20); }
 .applyBtn.secondary { background: #f8fafc; border: 1px solid rgba(148, 163, 184, 0.28); color: $ink; }
+.applyBtn.warning { background: #fffbeb; border: 1px solid rgba(245, 158, 11, 0.34); color: #92400e; }
+.applyBtn.danger { background: #fef2f2; border: 1px solid rgba(239, 68, 68, 0.30); color: #b91c1c; }
+.applyBtn:disabled { opacity: 0.6; cursor: not-allowed; }
 .applyMeta { margin-top: 12px; }
 .rightBlock { margin-top: 14px; }
 .rbRow { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-top: 1px solid rgba(148, 163, 184, 0.20); font-size: 13px; }
@@ -156,4 +166,23 @@ $red: #ef4444;
     flex-direction: column;
     align-items: stretch;
   }
+}
+
+.list-loading {
+  padding: 28px;
+  text-align: center;
+  color: #52606d;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 20px 0 4px;
+}
+
+.pagination span {
+  font-weight: 700;
+  color: #334155;
 }

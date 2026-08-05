@@ -4,16 +4,14 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import {
+  FiltrosPostulantesRequest,
+  FiltrosPostulantesResponse,
+  OpcionFiltroPostulante,
   PostulacionResponseDTO,
   PostulacionService
 } from '../../../core/services/postulacion';
 
 import { TopbarComponent } from '../../../shared/components/topbar/topbar';
-
-interface OpcionFiltro {
-  id: number;
-  nombre: string;
-}
 
 @Component({
   selector: 'app-postulantes-oferta',
@@ -29,6 +27,7 @@ export class PostulantesOfertaComponent implements OnInit {
   postulantes: PostulacionResponseDTO[] = [];
 
   cargando = false;
+  cargandoFiltros = false;
   mensajeError = '';
   mensajeExito = '';
 
@@ -40,6 +39,18 @@ export class PostulantesOfertaComponent implements OnInit {
   filtroModalidadId = '';
   filtroHabilidadId = '';
   filtroHerramientaId = '';
+
+  distritosDisponibles: OpcionFiltroPostulante[] = [];
+  modalidadesDisponibles: OpcionFiltroPostulante[] = [];
+  habilidadesDisponibles: OpcionFiltroPostulante[] = [];
+  herramientasDisponibles: OpcionFiltroPostulante[] = [];
+
+  paginaActual = 0;
+  tamanoPagina = 8;
+  totalElementos = 0;
+  totalPaginas = 0;
+  primeraPagina = true;
+  ultimaPagina = true;
 
   constructor(
     private route: ActivatedRoute,
@@ -58,18 +69,32 @@ export class PostulantesOfertaComponent implements OnInit {
       return;
     }
 
-    this.cargarPostulantes();
+    this.cargarFiltrosDisponibles();
+    this.cargarPostulantes(0);
   }
 
-  cargarPostulantes(): void {
+  cargarPostulantes(page = 0): void {
     this.cargando = true;
     this.mensajeError = '';
     this.mensajeExito = '';
     this.cdr.detectChanges();
 
-    this.postulacionService.listarPostulantesPorOferta(this.idOferta).subscribe({
+    this.postulacionService.listarPostulantesPorOferta(
+      this.idOferta,
+      this.construirFiltros(),
+      page,
+      this.tamanoPagina
+    ).subscribe({
       next: (response) => {
-        this.postulantes = response.data || [];
+        const pagina = response.data;
+
+        this.postulantes = pagina?.content || [];
+        this.paginaActual = pagina?.page || 0;
+        this.totalElementos = pagina?.totalElements || 0;
+        this.totalPaginas = pagina?.totalPages || 0;
+        this.primeraPagina = pagina?.first ?? true;
+        this.ultimaPagina = pagina?.last ?? true;
+
         this.cargando = false;
         this.cdr.detectChanges();
       },
@@ -88,81 +113,30 @@ export class PostulantesOfertaComponent implements OnInit {
     });
   }
 
-  get postulantesFiltrados(): PostulacionResponseDTO[] {
-    return this.postulantes.filter((postulante) => {
-      if (this.filtroEstado !== 'TODOS' && postulante.estadoPostulacion !== this.filtroEstado) {
-        return false;
+  cargarFiltrosDisponibles(): void {
+    this.cargandoFiltros = true;
+
+    this.postulacionService.listarFiltrosPostulantes(this.idOferta).subscribe({
+      next: (response) => {
+        const filtros: FiltrosPostulantesResponse = response.data;
+
+        this.distritosDisponibles = filtros?.distritos || [];
+        this.modalidadesDisponibles = filtros?.modalidades || [];
+        this.habilidadesDisponibles = filtros?.habilidades || [];
+        this.herramientasDisponibles = filtros?.herramientas || [];
+        this.cargandoFiltros = false;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error cargando filtros de postulantes:', error);
+        this.cargandoFiltros = false;
+        this.cdr.detectChanges();
       }
-
-      const textoBusqueda = this.normalizarTexto(
-        `${postulante.nombreEmpleado} ${postulante.apellidoEmpleado} ${postulante.emailEmpleado}`
-      );
-
-      if (this.filtroNombre.trim()) {
-        const nombreBuscado = this.normalizarTexto(this.filtroNombre);
-
-        if (!textoBusqueda.includes(nombreBuscado)) {
-          return false;
-        }
-      }
-
-      if (this.filtroDistritoId) {
-        const idDistrito = Number(this.filtroDistritoId);
-
-        if (postulante.idDistrito !== idDistrito) {
-          return false;
-        }
-      }
-
-      if (this.filtroModalidadId) {
-        const idModalidad = Number(this.filtroModalidadId);
-
-        if (!(postulante.modalidadIds || []).includes(idModalidad)) {
-          return false;
-        }
-      }
-
-      if (this.filtroHabilidadId) {
-        const idHabilidad = Number(this.filtroHabilidadId);
-
-        if (!(postulante.habilidadIds || []).includes(idHabilidad)) {
-          return false;
-        }
-      }
-
-      if (this.filtroHerramientaId) {
-        const idHerramienta = Number(this.filtroHerramientaId);
-
-        if (!(postulante.herramientaIds || []).includes(idHerramienta)) {
-          return false;
-        }
-      }
-
-      return true;
     });
   }
 
-  get distritosDisponibles(): OpcionFiltro[] {
-    const opciones = this.postulantes
-      .filter((postulante) => postulante.idDistrito && postulante.distrito)
-      .map((postulante) => ({
-        id: postulante.idDistrito as number,
-        nombre: postulante.distrito as string
-      }));
-
-    return this.obtenerOpcionesUnicas(opciones);
-  }
-
-  get modalidadesDisponibles(): OpcionFiltro[] {
-    return this.obtenerOpcionesDesdeListas('modalidadIds', 'modalidades');
-  }
-
-  get habilidadesDisponibles(): OpcionFiltro[] {
-    return this.obtenerOpcionesDesdeListas('habilidadIds', 'habilidades');
-  }
-
-  get herramientasDisponibles(): OpcionFiltro[] {
-    return this.obtenerOpcionesDesdeListas('herramientaIds', 'herramientas');
+  aplicarFiltros(): void {
+    this.cargarPostulantes(0);
   }
 
   limpiarFiltros(): void {
@@ -172,6 +146,25 @@ export class PostulantesOfertaComponent implements OnInit {
     this.filtroModalidadId = '';
     this.filtroHabilidadId = '';
     this.filtroHerramientaId = '';
+    this.cargarPostulantes(0);
+  }
+
+  cambiarPagina(nuevaPagina: number): void {
+    if (
+      this.cargando ||
+      nuevaPagina < 0 ||
+      nuevaPagina >= this.totalPaginas ||
+      nuevaPagina === this.paginaActual
+    ) {
+      return;
+    }
+
+    this.cargarPostulantes(nuevaPagina);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  get paginaVisible(): number {
+    return this.totalPaginas === 0 ? 0 : this.paginaActual + 1;
   }
 
   aceptarPostulacion(postulante: PostulacionResponseDTO): void {
@@ -195,6 +188,19 @@ export class PostulantesOfertaComponent implements OnInit {
     return postulante.planEmpleado || 'Gratuito';
   }
 
+  obtenerTextoEstado(estado: string): string {
+    switch (estado) {
+      case 'PENDIENTE':
+        return 'Pendiente de revisión';
+      case 'ACEPTADA':
+        return 'Preseleccionado';
+      case 'RECHAZADA':
+        return 'No seleccionado';
+      default:
+        return estado;
+    }
+  }
+
   private cambiarEstadoPostulacion(
     postulante: PostulacionResponseDTO,
     nuevoEstado: 'ACEPTADA' | 'RECHAZADA'
@@ -210,22 +216,14 @@ export class PostulantesOfertaComponent implements OnInit {
         : this.postulacionService.rechazarPostulacion(postulante.idPostulacion);
 
     accion$.subscribe({
-      next: (response) => {
-        const postulacionActualizada = response.data;
-
-        this.postulantes = this.postulantes.map((item) =>
-          item.idPostulacion === postulacionActualizada.idPostulacion
-            ? postulacionActualizada
-            : item
-        );
-
+      next: () => {
         this.mensajeExito =
           nuevoEstado === 'ACEPTADA'
-            ? 'Postulación aceptada exitosamente.'
-            : 'Postulación rechazada exitosamente.';
+            ? 'Postulante preseleccionado exitosamente.'
+            : 'Postulación marcada como no seleccionada.';
 
         this.accionandoId = null;
-        this.cdr.detectChanges();
+        this.cargarPostulantes(this.paginaActual);
       },
       error: (error) => {
         console.error('Error cambiando estado de postulación:', error);
@@ -272,46 +270,19 @@ export class PostulantesOfertaComponent implements OnInit {
     ]);
   }
 
-  private obtenerOpcionesDesdeListas(
-    campoIds: 'modalidadIds' | 'habilidadIds' | 'herramientaIds',
-    campoNombres: 'modalidades' | 'habilidades' | 'herramientas'
-  ): OpcionFiltro[] {
-    const opciones: OpcionFiltro[] = [];
-
-    this.postulantes.forEach((postulante) => {
-      const ids = postulante[campoIds] || [];
-      const nombres = postulante[campoNombres] || [];
-
-      ids.forEach((id, index) => {
-        const nombre = nombres[index];
-
-        if (id && nombre) {
-          opciones.push({ id, nombre });
-        }
-      });
-    });
-
-    return this.obtenerOpcionesUnicas(opciones);
+  private construirFiltros(): FiltrosPostulantesRequest {
+    return {
+      estado: this.filtroEstado,
+      texto: this.filtroNombre.trim(),
+      distritoId: this.convertirId(this.filtroDistritoId),
+      modalidadId: this.convertirId(this.filtroModalidadId),
+      habilidadId: this.convertirId(this.filtroHabilidadId),
+      herramientaId: this.convertirId(this.filtroHerramientaId)
+    };
   }
 
-  private obtenerOpcionesUnicas(opciones: OpcionFiltro[]): OpcionFiltro[] {
-    const mapa = new Map<number, OpcionFiltro>();
-
-    opciones.forEach((opcion) => {
-      if (!mapa.has(opcion.id)) {
-        mapa.set(opcion.id, opcion);
-      }
-    });
-
-    return Array.from(mapa.values())
-      .sort((a, b) => a.nombre.localeCompare(b.nombre));
-  }
-
-  private normalizarTexto(texto: string): string {
-    return texto
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .trim();
+  private convertirId(valor: string): number | undefined {
+    const id = Number(valor);
+    return Number.isFinite(id) && id > 0 ? id : undefined;
   }
 }

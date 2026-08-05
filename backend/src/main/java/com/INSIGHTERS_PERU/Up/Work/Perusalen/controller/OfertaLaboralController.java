@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.OfertaLaboralRequestDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.OfertaLaboralResponseDTO;
+import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.PaginaResponseDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.response.ApiResponse;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.security.JwtUtil;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.service.OfertaLaboralService;
@@ -86,12 +88,92 @@ public class OfertaLaboralController {
         );
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> eliminarOferta(
+            @PathVariable Long id,
+            HttpServletRequest request) {
+
+        Long idUsuario = jwtUtil.getIdFromRequest(request);
+
+        ofertaLaboralService.eliminarOferta(id, idUsuario);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        "Oferta laboral eliminada exitosamente",
+                        null
+                )
+        );
+    }
+
+    @GetMapping("/paginadas")
+    public ResponseEntity<PaginaResponseDTO<OfertaLaboralResponseDTO>> getOfertasLaboralesActivasPaginadas(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size) {
+
+        return ResponseEntity.ok(
+                ofertaLaboralService.getOfertasLaboralesActivasPaginadas(page, size)
+        );
+    }
+
+    @GetMapping("/mias")
+    public ResponseEntity<ApiResponse<PaginaResponseDTO<OfertaLaboralResponseDTO>>> getMisOfertas(
+            @RequestParam(defaultValue = "ACTIVAS") String estado,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "6") int size,
+            HttpServletRequest request) {
+
+        Long idUsuario = jwtUtil.getIdFromRequest(request);
+
+        PaginaResponseDTO<OfertaLaboralResponseDTO> pagina =
+                ofertaLaboralService.listarMisOfertasPaginadas(
+                        idUsuario,
+                        estado,
+                        page,
+                        size
+                );
+
+        return ResponseEntity.ok(
+                new ApiResponse<>("Ofertas del empleador obtenidas exitosamente", pagina)
+        );
+    }
+
     @GetMapping
     public ResponseEntity<List<OfertaLaboralResponseDTO>> getOfertasLaboralesActivas() {
         List<OfertaLaboralResponseDTO> ofertas =
                 ofertaLaboralService.getOfertasLaboralesActivas();
 
         return ResponseEntity.ok(ofertas);
+    }
+
+    @GetMapping("/filtrar/paginadas")
+    public ResponseEntity<PaginaResponseDTO<OfertaLaboralResponseDTO>> filtrarPaginadas(
+            @RequestParam(required = false) Long categoria,
+            @RequestParam(required = false) Long modalidad,
+            @RequestParam(required = false) Long experiencia,
+            @RequestParam(required = false) BigDecimal montoMin,
+            @RequestParam(required = false) BigDecimal montoMax,
+            @RequestParam(required = false) String palabraClave,
+            @RequestParam(required = false) String ubicacion,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String order,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size) {
+
+        return ResponseEntity.ok(
+                ofertaLaboralService.filtrarOfertasPaginadas(
+                        categoria,
+                        modalidad,
+                        experiencia,
+                        montoMin,
+                        montoMax,
+                        palabraClave,
+                        ubicacion,
+                        sortBy,
+                        order,
+                        page,
+                        size
+                )
+        );
     }
 
     @GetMapping("/filtrar")

@@ -5,6 +5,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const esRutaPublica =
     req.url.includes('/usuarios/login') ||
     req.url.includes('/usuarios/registro') ||
+    req.url.includes('/usuarios/password/') ||
+    req.url.includes('/reclamos') ||
     req.url.includes('/catalogos/') ||
     req.url.includes('/filtros/ofertas');
 

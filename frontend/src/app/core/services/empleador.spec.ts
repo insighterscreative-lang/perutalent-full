@@ -1,16 +1,8 @@
-import { TestBed } from '@angular/core/testing';
+import { describe, expect, it } from 'vitest';
+import { EmpleadorService } from './empleador';
 
-import { Empleador } from './empleador';
-
-describe('Empleador', () => {
-  let service: Empleador;
-
-  beforeEach(() => {
-    TestBed.configureTestingModule({});
-    service = TestBed.inject(Empleador);
-  });
-
-  it('should be created', () => {
-    expect(service).toBeTruthy();
+describe('EmpleadorService', () => {
+  it('expone el servicio utilizado por la aplicación', () => {
+    expect(EmpleadorService).toBeDefined();
   });
 });

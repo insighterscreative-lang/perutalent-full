@@ -13,13 +13,16 @@ import com.INSIGHTERS_PERU.Up.Work.Perusalen.repository.SuscripcionUsuarioReposi
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.repository.UsoPlanUsuarioRepository;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.repository.UsuarioEmpleadorRepository;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.repository.UsuarioRepository;
+import com.INSIGHTERS_PERU.Up.Work.Perusalen.util.FechaPeru;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class SuscripcionService {
@@ -332,6 +335,38 @@ public class SuscripcionService {
         return suscripcion.getPlan().getMaxRecomendaciones();
     }
 
+    @Transactional(readOnly = true)
+    public Map<Long, PlanUsuarioResumen> obtenerResumenPlanesUsuarios(List<Long> idsUsuarios) {
+        Map<Long, PlanUsuarioResumen> resultado = new HashMap<>();
+
+        if (idsUsuarios == null || idsUsuarios.isEmpty()) {
+            return resultado;
+        }
+
+        LocalDate hoy = FechaPeru.hoy();
+
+        suscripcionUsuarioRepository.findActivasByUsuarioIds(idsUsuarios)
+                .stream()
+                .filter(suscripcion -> suscripcion.getFechaInicio() == null
+                        || !suscripcion.getFechaInicio().isAfter(hoy))
+                .filter(suscripcion -> suscripcion.getFechaFin() == null
+                        || !suscripcion.getFechaFin().isBefore(hoy))
+                .forEach(suscripcion -> resultado.putIfAbsent(
+                        suscripcion.getUsuario().getId(),
+                        new PlanUsuarioResumen(
+                                Boolean.TRUE.equals(suscripcion.getPlan().getPrioridadPostulante()),
+                                suscripcion.getPlan().getNombrePlan()
+                        )
+                ));
+
+        idsUsuarios.forEach(idUsuario -> resultado.putIfAbsent(
+                idUsuario,
+                new PlanUsuarioResumen(false, PLAN_GRATUITO)
+        ));
+
+        return resultado;
+    }
+
     @Transactional
     public boolean usuarioTienePrioridadPostulante(Long idUsuario) {
         Usuario usuario = buscarUsuarioPorId(idUsuario);
@@ -414,10 +449,12 @@ public class SuscripcionService {
 
     private Integer obtenerOfertasActivasActuales(Usuario usuario) {
         return usuarioEmpleadorRepository.findByUsuarioId(usuario.getId())
-                .map(empleador -> ofertaLaboralRepository.countByIdEmpleadorIdAndEstadoOferta(
-                        empleador.getId(),
-                        "ABIERTA"
-                ))
+                .map(empleador -> ofertaLaboralRepository
+                        .countByIdEmpleadorIdAndEstadoOfertaAndFechaTerminoPostulacionGreaterThanEqual(
+                                empleador.getId(),
+                                "ABIERTA",
+                                FechaPeru.hoy()
+                        ))
                 .orElse(0);
     }
 
@@ -580,10 +617,9 @@ public class SuscripcionService {
                 ofertasActivas
         );
 
-        Integer recomendacionesRestantes = calcularRestantes(
-                plan.getMaxRecomendaciones(),
-                uso.getRecomendacionesVistas()
-        );
+        // Las recomendaciones no se consumen. Este valor representa cuántas
+        // ofertas como máximo se muestran en cada consulta de “Para ti”.
+        Integer recomendacionesRestantes = plan.getMaxRecomendaciones();
 
         return new UsoPlanUsuarioDTO(
                 uso.getId(),
@@ -611,4 +647,7 @@ public class SuscripcionService {
 
         return Math.max(limite - usado, 0);
     }
+    public record PlanUsuarioResumen(boolean prioridadPostulante, String nombrePlan) {
+    }
+
 }

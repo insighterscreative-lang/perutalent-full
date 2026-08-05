@@ -62,17 +62,6 @@
             required>
         </div>
 
-        <div class="field">
-          <label>Código interno *</label>
-          <input
-            type="text"
-            name="codigoInterno"
-            [(ngModel)]="oferta.codigoInterno"
-            maxlength="50"
-            placeholder="Ejemplo: COC-001"
-            required>
-        </div>
-
       </div>
 
       <div class="field">
@@ -142,19 +131,6 @@
           </select>
         </div>
 
-        <div class="field">
-          <label>Tipo de duración *</label>
-          <select
-            name="idDuracion"
-            [(ngModel)]="oferta.idDuracion"
-            required>
-            <option [ngValue]="0">Seleccionar</option>
-            <option *ngFor="let duracion of tiposDuracion" [ngValue]="duracion.id">
-              {{ duracion.nombre }}
-            </option>
-          </select>
-        </div>
-
       </div>
 
       <h2>Ubicación</h2>
@@ -209,6 +185,20 @@
       <h2>Duración y pago</h2>
 
       <div class="grid">
+
+
+        <div class="field">
+          <label>Tipo de duración *</label>
+          <select
+            name="idDuracion"
+            [(ngModel)]="oferta.idDuracion"
+            required>
+            <option [ngValue]="0">Seleccionar</option>
+            <option *ngFor="let duracion of tiposDuracion" [ngValue]="duracion.id">
+              {{ duracion.nombre }}
+            </option>
+          </select>
+        </div>
 
         <div class="field">
           <label>Cantidad de duración *</label>

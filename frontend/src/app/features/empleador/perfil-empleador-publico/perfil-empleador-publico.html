@@ -91,7 +91,7 @@
         <div class="card">
 
           <div class="section-title">
-            Información de la empresa
+            Información del empleador
           </div>
 
           <div class="info-grid">
@@ -107,28 +107,8 @@
             </div>
 
             <div class="info-item">
-              <span>Razón social / Nombre legal</span>
-              <strong>{{ perfil.razonSocial }}</strong>
-            </div>
-
-            <div class="info-item">
-              <span>Tipo de documento</span>
-              <strong>{{ perfil.tipoDoc }}</strong>
-            </div>
-
-            <div class="info-item">
-              <span>Número de documento</span>
-              <strong>{{ perfil.numDoc }}</strong>
-            </div>
-
-            <div class="info-item">
               <span>Años de operación</span>
               <strong>{{ perfil.aniosOperacion }} años</strong>
-            </div>
-
-            <div class="info-item">
-              <span>Correo de cuenta</span>
-              <strong>{{ perfil.correo }}</strong>
             </div>
 
           </div>
@@ -177,37 +157,6 @@
               <div class="tag" *ngFor="let modalidad of perfil.modalidadesContratacion">
                 {{ modalidad }}
               </div>
-            </div>
-
-          </div>
-
-          <div class="card mt" *ngIf="tieneContactoOpcional()">
-
-            <div class="section-title">
-              Contacto externo
-            </div>
-
-            <p class="description">
-              Esta información fue proporcionada por la empresa para facilitar el contacto externo.
-            </p>
-
-            <div class="contact-list">
-
-              <div class="info-item" *ngIf="perfil.sitioWeb">
-                <span>Sitio web o enlace externo</span>
-                <strong>{{ perfil.sitioWeb }}</strong>
-              </div>
-
-              <div class="info-item" *ngIf="perfil.correoContacto">
-                <span>Correo de contacto</span>
-                <strong>{{ perfil.correoContacto }}</strong>
-              </div>
-
-              <div class="info-item" *ngIf="perfil.telefonoContacto">
-                <span>Teléfono de contacto</span>
-                <strong>{{ perfil.telefonoContacto }}</strong>
-              </div>
-
             </div>
 
           </div>

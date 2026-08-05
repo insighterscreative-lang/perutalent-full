@@ -8,15 +8,62 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface AuthData {
+  token: string;
+  id: number;
+  email: string;
+  esEmpleado: boolean;
+  esEmpleador: boolean;
+}
+
 export interface AuthResponse {
   message: string;
-  data: {
-    token: string;
-    id: number;
-    email: string;
-    esEmpleado: boolean;
-    esEmpleador: boolean;
-  };
+  data: AuthData;
+}
+
+export interface CuentaUsuario {
+  id: number;
+  email: string;
+  esEmpleado: boolean;
+  esEmpleador: boolean;
+  fechaRegistro: string;
+}
+
+export interface CuentaUsuarioResponse {
+  message: string;
+  data: CuentaUsuario;
+}
+
+export interface ActualizarEmailRequest {
+  nuevoEmail: string;
+  passwordActual: string;
+}
+
+export interface ActualizarPasswordRequest {
+  passwordActual: string;
+  nuevaPassword: string;
+  confirmarPassword: string;
+}
+
+export interface EliminarCuentaRequest {
+  passwordActual: string;
+  confirmacion: string;
+}
+
+export interface SolicitarRecuperacionPasswordRequest {
+  email: string;
+}
+
+export interface VerificarCodigoRecuperacionRequest {
+  email: string;
+  codigo: string;
+}
+
+export interface RestablecerPasswordRequest {
+  email: string;
+  codigo: string;
+  nuevaPassword: string;
+  confirmarPassword: string;
 }
 
 @Injectable({
@@ -36,8 +83,45 @@ export class AuthService {
     return this.http.post<any>(`${this.apiUrl}/registro`, data);
   }
 
+
+  solicitarCodigoRecuperacion(data: SolicitarRecuperacionPasswordRequest): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/password/solicitar-codigo`, data);
+  }
+
+  verificarCodigoRecuperacion(data: VerificarCodigoRecuperacionRequest): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/password/verificar-codigo`, data);
+  }
+
+  restablecerPassword(data: RestablecerPasswordRequest): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/password/restablecer`, data);
+  }
+
+  obtenerCuenta(): Observable<CuentaUsuarioResponse> {
+    return this.http.get<CuentaUsuarioResponse>(`${this.apiUrl}/cuenta`);
+  }
+
+  actualizarEmail(data: ActualizarEmailRequest): Observable<AuthResponse> {
+    return this.http.put<AuthResponse>(`${this.apiUrl}/cuenta/email`, data);
+  }
+
+  actualizarPassword(data: ActualizarPasswordRequest): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/cuenta/password`, data);
+  }
+
+  eliminarCuenta(data: EliminarCuentaRequest): Observable<any> {
+    return this.http.request<any>('delete', `${this.apiUrl}/cuenta`, { body: data });
+  }
+
   guardarToken(token: string): void {
     localStorage.setItem('token', token);
+  }
+
+  guardarSesion(data: AuthData): void {
+    this.guardarToken(data.token);
+    localStorage.setItem('idUsuario', String(data.id));
+    localStorage.setItem('email', data.email);
+    localStorage.setItem('esEmpleado', String(data.esEmpleado));
+    localStorage.setItem('esEmpleador', String(data.esEmpleador));
   }
 
   obtenerToken(): string | null {
@@ -46,6 +130,14 @@ export class AuthService {
 
   logout(): void {
     localStorage.removeItem('token');
+  }
+
+  limpiarSesion(): void {
+    localStorage.removeItem('token');
+    localStorage.removeItem('idUsuario');
+    localStorage.removeItem('email');
+    localStorage.removeItem('esEmpleado');
+    localStorage.removeItem('esEmpleador');
   }
 
   estaAutenticado(): boolean {

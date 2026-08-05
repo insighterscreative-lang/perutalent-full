@@ -37,3 +37,5 @@ application-local.properties
 # OS
 .DS_Store
 Thumbs.db
+# Resultados locales de la suite automatizada
+resultados-pruebas/

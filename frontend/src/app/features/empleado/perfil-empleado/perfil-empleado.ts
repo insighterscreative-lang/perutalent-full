@@ -81,6 +81,10 @@ export class PerfilEmpleadoComponent implements OnInit {
     this.router.navigate(['/ofertas/para-ti']);
   }
 
+  verMisPostulaciones(): void {
+    this.router.navigate(['/empleado/mis-postulaciones']);
+  }
+
   descargarCV(): void {
     if (!this.perfil?.curriculum) {
       this.mensajeError = 'No tienes un CV cargado en tu perfil.';

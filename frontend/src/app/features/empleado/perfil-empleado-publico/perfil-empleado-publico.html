@@ -64,7 +64,7 @@
         <div class="card">
 
           <div class="section-title">
-            Información personal
+            Información profesional
           </div>
 
           <div class="info-grid">
@@ -80,46 +80,12 @@
             </div>
 
             <div class="info-item">
-              <span>Tipo de documento</span>
-              <strong>{{ perfil.tipoDoc }}</strong>
-            </div>
-
-            <div class="info-item">
-              <span>Número de documento</span>
-              <strong>{{ perfil.numDoc }}</strong>
-            </div>
-
-            <div class="info-item">
-              <span>Fecha de nacimiento</span>
-              <strong>{{ perfil.fechaNacimiento }}</strong>
-            </div>
-
-            <div class="info-item">
-              <span>Género</span>
-              <strong>{{ perfil.genero }}</strong>
-            </div>
-
-            <div class="info-item">
-              <span>Nacionalidad</span>
-              <strong>{{ perfil.nacionalidad }}</strong>
-            </div>
-
-            <div class="info-item">
-              <span>Distrito</span>
-              <strong>{{ perfil.distrito }}</strong>
-            </div>
-
-            <div class="info-item">
-              <span>Teléfono</span>
-              <strong>{{ perfil.telefono }}</strong>
-            </div>
-
-            <div class="info-item">
-              <span>Correo</span>
-              <strong>{{ perfil.correo }}</strong>
+              <span>Ubicación general</span>
+              <strong>{{ perfil.distrito || 'No especificada' }}</strong>
             </div>
 
           </div>
+
 
         </div>
 

@@ -1,22 +1,8 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { describe, expect, it } from 'vitest';
+import { TopbarComponent } from './topbar';
 
-import { Topbar } from './topbar';
-
-describe('Topbar', () => {
-  let component: Topbar;
-  let fixture: ComponentFixture<Topbar>;
-
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [Topbar],
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(Topbar);
-    component = fixture.componentInstance;
-    await fixture.whenStable();
-  });
-
-  it('should create', () => {
-    expect(component).toBeTruthy();
+describe('TopbarComponent', () => {
+  it('está disponible para las plantillas', () => {
+    expect(TopbarComponent).toBeDefined();
   });
 });

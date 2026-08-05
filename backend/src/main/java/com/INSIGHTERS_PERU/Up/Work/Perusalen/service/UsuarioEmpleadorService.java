@@ -1,11 +1,14 @@
 package com.INSIGHTERS_PERU.Up.Work.Perusalen.service;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.UsuarioEmpleadorPublicoResponseDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.UsuarioEmpleadorRequestDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.UsuarioEmpleadorResponseDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.exception.BadRequestException;
@@ -23,6 +26,8 @@ import com.INSIGHTERS_PERU.Up.Work.Perusalen.repository.EmpleadorCategoriaReposi
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.repository.OfertaLaboralRepository;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.repository.UsuarioEmpleadorRepository;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.repository.UsuarioRepository;
+
+import com.INSIGHTERS_PERU.Up.Work.Perusalen.util.FechaPeru;
 
 import lombok.AllArgsConstructor;
 
@@ -48,6 +53,7 @@ public class UsuarioEmpleadorService {
     private final OfertaLaboralRepository ofertaLaboralRepository;
 
     private final S3StorageService s3StorageService;
+    private final EmailService emailService;
 
     @Transactional
     public void crearPerfil(UsuarioEmpleadorRequestDTO dto, Long idUsuario, MultipartFile logo) {
@@ -83,7 +89,31 @@ public class UsuarioEmpleadorService {
         UsuarioEmpleador empleadorGuardado = usuarioEmpleadorRepository.save(empleador);
 
         guardarCategorias(empleadorGuardado, dto.getCategoriasId());
+        enviarCorreoPerfilEmpleadorCreado(empleadorGuardado);
     }
+
+    private void enviarCorreoPerfilEmpleadorCreado(UsuarioEmpleador empleador) {
+        try {
+            if (empleador.getUsuario() == null || empleador.getUsuario().getEmail() == null) {
+                return;
+            }
+
+            String nombreComercial = empleador.getNombreComercial();
+
+            if (nombreComercial == null || nombreComercial.isBlank()) {
+                nombreComercial = "tu empresa";
+            }
+
+            emailService.enviarCorreoPerfilEmpleadorCreado(
+                    empleador.getUsuario().getEmail(),
+                    nombreComercial
+            );
+
+        } catch (Exception e) {
+            System.out.println("No se pudo enviar el correo de perfil de empleador creado: " + e.getMessage());
+        }
+    }
+
 
     @Transactional(readOnly = true)
     public UsuarioEmpleadorResponseDTO obtenerPerfil(Long idUsuario) {
@@ -164,7 +194,7 @@ public class UsuarioEmpleadorService {
     }
 
     @Transactional(readOnly = true)
-    public UsuarioEmpleadorResponseDTO obtenerPerfilPublico(Long idEmpleador) {
+    public UsuarioEmpleadorPublicoResponseDTO obtenerPerfilPublico(Long idEmpleador) {
 
         UsuarioEmpleador empleador = usuarioEmpleadorRepository
                 .findById(idEmpleador)
@@ -178,7 +208,7 @@ public class UsuarioEmpleadorService {
         llenarModalidadesContratacion(response, empleador);
         llenarTrabajos(response, empleador);
 
-        return response;
+        return usuarioEmpleadorMapper.toPublicResponseDTO(response);
     }
 
     private void eliminarArchivoAnteriorSiCorresponde(String rutaAnterior, String descripcion) {
@@ -406,19 +436,30 @@ public class UsuarioEmpleadorService {
             UsuarioEmpleador empleador
     ) {
 
-        List<String> estadosActivos = List.of(ESTADO_OFERTA_ABIERTA);
+        LocalDate hoy = FechaPeru.hoy();
 
-        List<OfertaLaboral> trabajosActivos =
-                ofertaLaboralRepository.findByIdEmpleadorIdAndEstadoOfertaIn(
+        List<OfertaLaboral> ofertasAbiertas =
+                ofertaLaboralRepository.findByIdEmpleadorIdAndEstadoOferta(
                         empleador.getId(),
-                        estadosActivos
+                        ESTADO_OFERTA_ABIERTA
                 );
 
-        List<OfertaLaboral> trabajosFinalizados =
+        List<OfertaLaboral> trabajosActivos = ofertasAbiertas.stream()
+                .filter(oferta -> oferta.getFechaTerminoPostulacion() != null)
+                .filter(oferta -> !oferta.getFechaTerminoPostulacion().isBefore(hoy))
+                .toList();
+
+        List<OfertaLaboral> trabajosFinalizados = new ArrayList<>(
                 ofertaLaboralRepository.findByIdEmpleadorIdAndEstadoOferta(
                         empleador.getId(),
                         ESTADO_OFERTA_FINALIZADA
-                );
+                )
+        );
+
+        ofertasAbiertas.stream()
+                .filter(oferta -> oferta.getFechaTerminoPostulacion() == null
+                        || oferta.getFechaTerminoPostulacion().isBefore(hoy))
+                .forEach(trabajosFinalizados::add);
 
         response.setTrabajosActivos(trabajosActivos.size());
         response.setTrabajosFinalizados(trabajosFinalizados.size());

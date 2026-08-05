@@ -18,6 +18,9 @@ import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
+import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.FiltrosPostulantesResponseDTO;
+import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.MiPostulacionResponseDTO;
+import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.PaginaResponseDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.PostulacionResponseDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.response.ApiResponse;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.security.JwtUtil;
@@ -73,21 +76,74 @@ public class PostulacionController {
         );
     }
 
-    @GetMapping("/ofertas/{idOferta}/postulantes")
-    public ResponseEntity<ApiResponse<List<PostulacionResponseDTO>>> listarPostulantesPorOferta(
-            @PathVariable Long idOferta,
+    @GetMapping("/mis-postulaciones")
+    public ResponseEntity<ApiResponse<PaginaResponseDTO<MiPostulacionResponseDTO>>> listarMisPostulaciones(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "6") int size,
             HttpServletRequest request
     ) {
         Long idUsuario = jwtUtil.getIdFromRequest(request);
 
-        List<PostulacionResponseDTO> postulantes =
-                postulacionService.listarPostulantesPorOferta(idOferta, idUsuario);
+        PaginaResponseDTO<MiPostulacionResponseDTO> postulaciones =
+                postulacionService.listarMisPostulaciones(idUsuario, page, size);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        "Postulaciones obtenidas exitosamente",
+                        postulaciones
+                )
+        );
+    }
+
+    @GetMapping("/ofertas/{idOferta}/postulantes")
+    public ResponseEntity<ApiResponse<PaginaResponseDTO<PostulacionResponseDTO>>> listarPostulantesPorOferta(
+            @PathVariable Long idOferta,
+            @RequestParam(defaultValue = "TODOS") String estado,
+            @RequestParam(defaultValue = "") String texto,
+            @RequestParam(required = false) Long distritoId,
+            @RequestParam(required = false) Long modalidadId,
+            @RequestParam(required = false) Long habilidadId,
+            @RequestParam(required = false) Long herramientaId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size,
+            HttpServletRequest request
+    ) {
+        Long idUsuario = jwtUtil.getIdFromRequest(request);
+
+        PaginaResponseDTO<PostulacionResponseDTO> postulantes =
+                postulacionService.listarPostulantesPorOfertaPaginados(
+                        idOferta,
+                        idUsuario,
+                        estado,
+                        texto,
+                        distritoId,
+                        modalidadId,
+                        habilidadId,
+                        herramientaId,
+                        page,
+                        size
+                );
 
         return ResponseEntity.ok(
                 new ApiResponse<>(
                         "Postulantes obtenidos exitosamente",
                         postulantes
                 )
+        );
+    }
+
+    @GetMapping("/ofertas/{idOferta}/postulantes/filtros")
+    public ResponseEntity<ApiResponse<FiltrosPostulantesResponseDTO>> listarFiltrosPostulantes(
+            @PathVariable Long idOferta,
+            HttpServletRequest request
+    ) {
+        Long idUsuario = jwtUtil.getIdFromRequest(request);
+
+        FiltrosPostulantesResponseDTO filtros =
+                postulacionService.listarFiltrosPostulantes(idOferta, idUsuario);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>("Filtros de postulantes obtenidos exitosamente", filtros)
         );
     }
 
@@ -103,7 +159,7 @@ public class PostulacionController {
 
         return ResponseEntity.ok(
                 new ApiResponse<>(
-                        "Postulación aceptada exitosamente",
+                        "Postulación preseleccionada exitosamente",
                         postulacion
                 )
         );

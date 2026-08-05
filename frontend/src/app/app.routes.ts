@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 
 import { Login } from './features/auth/login/login';
 import { Register } from './features/auth/register/register';
+import { RecuperarPasswordComponent } from './features/auth/recuperar-password/recuperar-password';
 
 import { AuthGuard } from './core/guards/auth-guard';
 import { NoAuthGuard } from './core/guards/no-auth-guard';
@@ -23,13 +24,16 @@ import { MisOfertasEmpleadorComponent } from './features/empleador/mis-ofertas-e
 
 import { PostularOfertaComponent } from './features/postulaciones/postular-oferta/postular-oferta';
 import { PostulantesOfertaComponent } from './features/postulaciones/postulantes-oferta/postulantes-oferta';
+import { MisPostulacionesComponent } from './features/postulaciones/mis-postulaciones/mis-postulaciones';
 
 import { SuscripcionesComponent } from './features/suscripciones/suscripciones/suscripciones';
+import { EditarCuentaComponent } from './features/cuenta/editar-cuenta/editar-cuenta';
 
 import { TerminosCondicionesComponent } from './features/legal/terminos-condiciones/terminos-condiciones';
 import { PoliticaPrivacidadComponent } from './features/legal/politica-privacidad/politica-privacidad';
 import { PoliticaDevolucionesComponent } from './features/legal/politica-devoluciones/politica-devoluciones';
 import { LibroReclamacionesComponent } from './features/legal/libro-reclamaciones/libro-reclamaciones';
+import { ReportarProblemaComponent } from './features/soporte/reportar-problema/reportar-problema';
 
 export const routes: Routes = [
 
@@ -42,6 +46,12 @@ export const routes: Routes = [
   {
     path: 'register',
     component: Register,
+    canActivate: [NoAuthGuard]
+  },
+
+  {
+    path: 'recuperar-password',
+    component: RecuperarPasswordComponent,
     canActivate: [NoAuthGuard]
   },
 
@@ -163,6 +173,15 @@ export const routes: Routes = [
   },
 
   {
+    path: 'empleado/mis-postulaciones',
+    component: MisPostulacionesComponent,
+    canActivate: [RoleGuard],
+    data: {
+      roles: ['ROLE_EMPLEADO']
+    }
+  },
+
+  {
     path: 'postulaciones/ofertas/:id/postular',
     component: PostularOfertaComponent,
     canActivate: [RoleGuard],
@@ -178,6 +197,13 @@ export const routes: Routes = [
     data: {
       roles: ['ROLE_EMPLEADOR']
     }
+  },
+
+
+  {
+    path: 'cuenta/editar',
+    component: EditarCuentaComponent,
+    canActivate: [AuthGuard]
   },
 
   {
@@ -203,6 +229,11 @@ export const routes: Routes = [
   {
     path: 'libro-reclamaciones',
     component: LibroReclamacionesComponent
+  },
+
+  {
+    path: 'reportar-problema',
+    component: ReportarProblemaComponent
   },
 
   {

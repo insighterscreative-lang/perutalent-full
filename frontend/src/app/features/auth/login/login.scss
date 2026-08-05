@@ -127,3 +127,20 @@
   .left { padding-bottom: 12px; }
   .right { padding-top: 12px; align-items: flex-start; }
 }
+
+.forgot-link {
+  text-align: right;
+  margin: 2px 0 12px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.forgot-link a {
+  color: #93c5fd;
+  text-decoration: none;
+}
+
+.forgot-link a:hover {
+  color: #bfdbfe;
+  text-decoration: underline;
+}

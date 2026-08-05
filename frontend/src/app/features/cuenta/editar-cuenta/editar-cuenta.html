@@ -1,0 +1,182 @@
+<app-topbar></app-topbar>
+
+<section class="account-page">
+  <div class="account-header">
+    <div>
+      <p class="eyebrow">Configuración</p>
+      <h1>Información de la cuenta</h1>
+      <p>
+        Administra los datos de acceso de tu cuenta. Esta sección es independiente
+        del perfil público de empleado o empleador.
+      </p>
+    </div>
+
+    <button type="button" class="btn-secondary" (click)="volver()">
+      Volver
+    </button>
+  </div>
+
+  <div class="state-card" *ngIf="cargando">
+    Cargando información de cuenta...
+  </div>
+
+  <div class="alert error" *ngIf="mensajeError">
+    {{ mensajeError }}
+  </div>
+
+  <div class="alert success" *ngIf="mensajeExito">
+    {{ mensajeExito }}
+  </div>
+
+  <div class="account-grid" *ngIf="!cargando && cuenta">
+
+    <article class="account-card summary-card">
+      <h2>Resumen</h2>
+
+      <div class="summary-row">
+        <span>Correo actual</span>
+        <strong>{{ cuenta.email }}</strong>
+      </div>
+
+      <div class="summary-row">
+        <span>Tipo de cuenta</span>
+        <strong>{{ tipoCuenta }}</strong>
+      </div>
+
+      <div class="summary-row">
+        <span>Fecha de registro</span>
+        <strong>{{ cuenta.fechaRegistro }}</strong>
+      </div>
+    </article>
+
+    <article class="account-card">
+      <h2>Cambiar correo</h2>
+      <p>
+        Al cambiar el correo, se actualizará también tu sesión actual para que puedas
+        seguir usando la plataforma sin cerrar sesión.
+      </p>
+
+      <form (ngSubmit)="actualizarEmail()">
+        <label>
+          Nuevo correo electrónico
+          <input
+            type="email"
+            name="nuevoEmail"
+            [(ngModel)]="nuevoEmail"
+            placeholder="nuevo.correo@ejemplo.com"
+            required
+          >
+        </label>
+
+        <label>
+          Contraseña actual
+          <input
+            type="password"
+            name="passwordActualEmail"
+            [(ngModel)]="passwordActualEmail"
+            placeholder="Confirma tu contraseña actual"
+            required
+          >
+        </label>
+
+        <button type="submit" class="btn-primary" [disabled]="guardandoEmail">
+          {{ guardandoEmail ? 'Actualizando...' : 'Actualizar correo' }}
+        </button>
+      </form>
+    </article>
+
+    <article class="account-card">
+      <h2>Cambiar contraseña</h2>
+      <p>
+        Usa una contraseña segura con mayúsculas, minúsculas, números y un carácter especial.
+      </p>
+
+      <form (ngSubmit)="actualizarPassword()">
+        <label>
+          Contraseña actual
+          <input
+            type="password"
+            name="passwordActual"
+            [(ngModel)]="passwordActual"
+            placeholder="Contraseña actual"
+            required
+          >
+        </label>
+
+        <label>
+          Nueva contraseña
+          <input
+            type="password"
+            name="nuevaPassword"
+            [(ngModel)]="nuevaPassword"
+            placeholder="Nueva contraseña"
+            required
+          >
+        </label>
+
+        <ul class="password-rules" aria-label="Requisitos de contraseña">
+          <li [class.valid]="passwordTieneLongitud">Mínimo 8 caracteres</li>
+          <li [class.valid]="passwordTieneMayuscula">Una letra mayúscula</li>
+          <li [class.valid]="passwordTieneMinuscula">Una letra minúscula</li>
+          <li [class.valid]="passwordTieneNumero">Un número</li>
+          <li [class.valid]="passwordTieneEspecial">Un carácter especial: @$!%*?&</li>
+        </ul>
+
+        <label>
+          Confirmar nueva contraseña
+          <input
+            type="password"
+            name="confirmarPassword"
+            [(ngModel)]="confirmarPassword"
+            placeholder="Repite la nueva contraseña"
+            required
+          >
+        </label>
+
+        <button type="submit" class="btn-primary" [disabled]="guardandoPassword || !passwordValida || nuevaPassword !== confirmarPassword">
+          {{ guardandoPassword ? 'Actualizando...' : 'Actualizar contraseña' }}
+        </button>
+      </form>
+    </article>
+
+    <article class="account-card danger-card">
+      <h2>Eliminar cuenta</h2>
+      <p>
+        Esta acción eliminará tu cuenta, perfil, postulaciones, ofertas asociadas y archivos relacionados.
+        No se puede deshacer.
+      </p>
+      <p class="danger-text">
+        Si tienes una suscripción Premium recurrente activa, cancélala primero desde Suscripciones antes de eliminar la cuenta.
+      </p>
+
+      <form (ngSubmit)="eliminarCuenta()">
+        <label>
+          Contraseña actual
+          <input
+            type="password"
+            name="passwordEliminar"
+            [(ngModel)]="passwordEliminar"
+            placeholder="Confirma tu contraseña actual"
+            required
+          >
+        </label>
+
+        <label>
+          Escribe ELIMINAR para confirmar
+          <input
+            type="text"
+            name="confirmacionEliminar"
+            [(ngModel)]="confirmacionEliminar"
+            placeholder="ELIMINAR"
+            required
+          >
+        </label>
+
+        <button type="submit" class="btn-danger" [disabled]="eliminandoCuenta">
+          {{ eliminandoCuenta ? 'Eliminando...' : 'Eliminar cuenta definitivamente' }}
+        </button>
+      </form>
+    </article>
+
+  </div>
+</section>

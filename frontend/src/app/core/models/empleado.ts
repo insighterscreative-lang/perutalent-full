@@ -58,6 +58,25 @@ export interface EmpleadoResponse {
   trabajosFinalizadosDetalle: TrabajoPerfil[];
 }
 
+export interface EmpleadoPublicoResponse {
+  idEmpleado: number;
+  nombre: string;
+  apellido: string;
+  fotoPerfil: string;
+  distrito: string;
+  descripcion: string;
+  idiomas: string[];
+  habilidades: string[];
+  categorias: string[];
+  disponibilidadEquipo: string;
+  herramientas: string[];
+  modalidades: string[];
+  trabajosActivos: number;
+  trabajosFinalizados: number;
+  trabajosActivosDetalle: TrabajoPerfil[];
+  trabajosFinalizadosDetalle: TrabajoPerfil[];
+}
+
 export interface ApiResponse<T> {
   message: string;
   data: T;

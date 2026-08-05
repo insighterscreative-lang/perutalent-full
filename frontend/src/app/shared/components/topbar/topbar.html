@@ -26,6 +26,14 @@
       <div class="dropdown" *ngIf="menuAbierto">
 
         <button
+          *ngIf="esEmpleado"
+          type="button"
+          class="dropdown-item"
+          (click)="irMisPostulaciones()">
+          Mis postulaciones
+        </button>
+
+        <button
           type="button"
           class="dropdown-item"
           (click)="irEditarCuenta()">

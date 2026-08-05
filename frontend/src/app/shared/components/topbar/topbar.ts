@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, HostListener } from '@angular/core';
 import { Router } from '@angular/router';
 
+import { AuthService } from '../../../core/services/auth';
 import { LogoComponent } from '../logo/logo';
 
 @Component({
@@ -15,7 +16,14 @@ export class TopbarComponent {
 
   menuAbierto = false;
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private authService: AuthService
+  ) {}
+
+  get esEmpleado(): boolean {
+    return this.authService.tieneRol('ROLE_EMPLEADO');
+  }
 
   toggleMenu(): void {
     this.menuAbierto = !this.menuAbierto;
@@ -32,6 +40,11 @@ export class TopbarComponent {
   irSuscripciones(): void {
     this.menuAbierto = false;
     this.router.navigate(['/suscripciones']);
+  }
+
+  irMisPostulaciones(): void {
+    this.menuAbierto = false;
+    this.router.navigate(['/empleado/mis-postulaciones']);
   }
     
   cerrarSesion(): void {

@@ -7,6 +7,10 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { OfertaService, FiltrosOfertas, SimpleDTO } from 'src/app/core/services/oferta.service';
 import { PostulacionService } from 'src/app/core/services/postulacion';
 import { SuscripcionService } from 'src/app/core/services/suscripcion';
+import {
+  OperacionInicialService,
+  ReporteOfertaRequest
+} from 'src/app/core/services/operacion-inicial.service';
 import { UsoPlanUsuario } from 'src/app/core/models/suscripcion';
 import { Oferta } from 'src/app/core/models/oferta';
 import { TopbarComponent } from 'src/app/shared/components/topbar/topbar';
@@ -21,6 +25,14 @@ import { TopbarComponent } from 'src/app/shared/components/topbar/topbar';
 export class OfertasComponent implements OnInit {
 
   ofertas: Oferta[] = [];
+
+  paginaActual = 0;
+  tamanoPagina = 12;
+  totalElementos = 0;
+  totalPaginas = 0;
+  primeraPagina = true;
+  ultimaPagina = true;
+  filtrosAplicados = false;
 
   keyword = '';
   ubicacion = '';
@@ -52,10 +64,20 @@ export class OfertasComponent implements OnInit {
   miUso?: UsoPlanUsuario;
   cargandoUsoPlan = false;
 
+  reporteOpen = false;
+  enviandoReporte = false;
+  reporteError = '';
+  reporteExito = '';
+  reporte: ReporteOfertaRequest = {
+    motivo: '',
+    descripcion: ''
+  };
+
   constructor(
     private ofertaService: OfertaService,
     private postulacionService: PostulacionService,
     private suscripcionService: SuscripcionService,
+    private operacionService: OperacionInicialService,
     private route: ActivatedRoute,
     private router: Router,
     private cdr: ChangeDetectorRef
@@ -71,7 +93,8 @@ export class OfertasComponent implements OnInit {
     if (this.modoParaTi) {
       this.cargarRecomendaciones();
     } else {
-      this.cargarOfertas();
+      this.filtrosAplicados = false;
+      this.cargarOfertas(0);
     }
   }
 
@@ -87,13 +110,15 @@ export class OfertasComponent implements OnInit {
     return 'Explora oportunidades publicadas por empleadores y filtra según lo que estás buscando.';
   }
 
-  cargarOfertas(): void {
+  cargarOfertas(page = 0): void {
     this.cargando = true;
     this.mensajeError = '';
+    this.filtrosAplicados = false;
 
-    this.ofertaService.getOfertas().subscribe({
-      next: (data: Oferta[]) => {
-        this.ofertas = data;
+    this.ofertaService.getOfertas(page, this.tamanoPagina).subscribe({
+      next: (pagina) => {
+        this.ofertas = pagina.content || [];
+        this.actualizarPaginacion(pagina);
         this.cargando = false;
         this.cdr.detectChanges();
       },
@@ -113,6 +138,11 @@ export class OfertasComponent implements OnInit {
     this.ofertaService.getOfertasParaTi().subscribe({
       next: (response) => {
         this.ofertas = response.data || [];
+        this.paginaActual = 0;
+        this.totalElementos = this.ofertas.length;
+        this.totalPaginas = this.ofertas.length > 0 ? 1 : 0;
+        this.primeraPagina = true;
+        this.ultimaPagina = true;
         this.cargando = false;
         this.cdr.detectChanges();
       },
@@ -186,48 +216,21 @@ export class OfertasComponent implements OnInit {
     });
   }
 
-  filtrar(): void {
-    const filtros: FiltrosOfertas = {};
-
-    if (this.keyword.trim()) {
-      filtros.palabraClave = this.keyword.trim();
-    }
-
-    if (this.ubicacion.trim()) {
-      filtros.ubicacion = this.ubicacion.trim();
-    }
-
-    if (this.categoriaSeleccionada) {
-      filtros.categoria = this.categoriaSeleccionada;
-    }
-
-    if (this.modalidadSeleccionada) {
-      filtros.modalidad = this.modalidadSeleccionada;
-    }
-
-    if (this.experienciaSeleccionada) {
-      filtros.experiencia = this.experienciaSeleccionada;
-    }
-
-    if (this.montoMin !== undefined && this.montoMin !== null) {
-      filtros.montoMin = this.montoMin;
-    }
-
-    if (this.montoMax !== undefined && this.montoMax !== null) {
-      filtros.montoMax = this.montoMax;
-    }
-
-    if (this.sortBy) {
-      filtros.sortBy = this.sortBy;
-      filtros.order = this.order;
-    }
+  filtrar(page = 0): void {
+    const filtros = this.construirFiltros();
 
     this.cargando = true;
     this.mensajeError = '';
+    this.filtrosAplicados = true;
 
-    this.ofertaService.filtrarOfertas(filtros).subscribe({
-      next: (data: Oferta[]) => {
-        this.ofertas = data;
+    this.ofertaService.filtrarOfertas(
+      filtros,
+      page,
+      this.tamanoPagina
+    ).subscribe({
+      next: (pagina) => {
+        this.ofertas = pagina.content || [];
+        this.actualizarPaginacion(pagina);
         this.cargando = false;
         this.cdr.detectChanges();
       },
@@ -240,6 +243,25 @@ export class OfertasComponent implements OnInit {
     });
   }
 
+  private construirFiltros(): FiltrosOfertas {
+    const filtros: FiltrosOfertas = {};
+
+    if (this.keyword.trim()) filtros.palabraClave = this.keyword.trim();
+    if (this.ubicacion.trim()) filtros.ubicacion = this.ubicacion.trim();
+    if (this.categoriaSeleccionada) filtros.categoria = this.categoriaSeleccionada;
+    if (this.modalidadSeleccionada) filtros.modalidad = this.modalidadSeleccionada;
+    if (this.experienciaSeleccionada) filtros.experiencia = this.experienciaSeleccionada;
+    if (this.montoMin !== undefined && this.montoMin !== null) filtros.montoMin = this.montoMin;
+    if (this.montoMax !== undefined && this.montoMax !== null) filtros.montoMax = this.montoMax;
+
+    if (this.sortBy) {
+      filtros.sortBy = this.sortBy;
+      filtros.order = this.order;
+    }
+
+    return filtros;
+  }
+
   aplicarOrden(sortBy: string, order: string): void {
     this.sortBy = sortBy;
     this.order = order;
@@ -249,7 +271,7 @@ export class OfertasComponent implements OnInit {
       return;
     }
 
-    this.filtrar();
+    this.filtrar(0);
   }
 
   ordenarOfertasLocales(): void {
@@ -294,6 +316,42 @@ export class OfertasComponent implements OnInit {
     }
   }
 
+  cambiarPagina(nuevaPagina: number): void {
+    if (this.modoParaTi || this.cargando) {
+      return;
+    }
+
+    if (nuevaPagina < 0 || nuevaPagina >= this.totalPaginas || nuevaPagina === this.paginaActual) {
+      return;
+    }
+
+    if (this.filtrosAplicados) {
+      this.filtrar(nuevaPagina);
+    } else {
+      this.cargarOfertas(nuevaPagina);
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  get paginaVisible(): number {
+    return this.totalPaginas === 0 ? 0 : this.paginaActual + 1;
+  }
+
+  private actualizarPaginacion(pagina: {
+    page: number;
+    totalElements: number;
+    totalPages: number;
+    first: boolean;
+    last: boolean;
+  }): void {
+    this.paginaActual = pagina.page;
+    this.totalElementos = pagina.totalElements;
+    this.totalPaginas = pagina.totalPages;
+    this.primeraPagina = pagina.first;
+    this.ultimaPagina = pagina.last;
+  }
+
   irAPerfilEmpleado(): void {
     this.router.navigate(['/empleado/perfil']);
   }
@@ -325,10 +383,43 @@ export class OfertasComponent implements OnInit {
     this.router.navigate(['/empleador/perfil-publico', idEmpleador]);
   }
 
+  ofertaVencida(oferta: Oferta | null | undefined): boolean {
+    if (!oferta?.fechaTerminoPostulacion) {
+      return true;
+    }
+
+    return oferta.fechaTerminoPostulacion < this.obtenerFechaLocalActual();
+  }
+
+  ofertaDisponible(oferta: Oferta | null | undefined): boolean {
+    return Boolean(oferta) &&
+      oferta?.estadoOferta === 'ABIERTA' &&
+      !this.ofertaVencida(oferta);
+  }
+
+  obtenerTextoBotonPostular(oferta: Oferta): string {
+    if (this.yaPostulo(oferta.id)) {
+      return 'Ya postulaste';
+    }
+
+    if (!this.ofertaDisponible(oferta)) {
+      return 'Postulación finalizada';
+    }
+
+    if (this.limitePostulacionesAlcanzado) {
+      return 'Límite alcanzado';
+    }
+
+    return 'Postular';
+  }
+
   openDetail(ofertaId: number): void {
     this.ofertaService.getOfertaById(ofertaId).subscribe({
       next: (oferta: Oferta) => {
         this.selectedOferta = oferta;
+        this.reporteOpen = false;
+        this.reporteError = '';
+        this.reporteExito = '';
         this.drawerOpen = false;
 
         document.body.style.overflow = 'hidden';
@@ -350,6 +441,7 @@ export class OfertasComponent implements OnInit {
   }
 
   closeDrawer(): void {
+    this.reporteOpen = false;
     this.drawerOpen = false;
     document.body.style.overflow = '';
     this.cdr.detectChanges();
@@ -367,7 +459,9 @@ export class OfertasComponent implements OnInit {
 
     const idOferta = this.selectedOferta.id;
 
-    if (this.yaPostulo(idOferta) || this.limitePostulacionesAlcanzado) {
+    if (!this.ofertaDisponible(this.selectedOferta)
+        || this.yaPostulo(idOferta)
+        || this.limitePostulacionesAlcanzado) {
       return;
     }
 
@@ -388,10 +482,84 @@ export class OfertasComponent implements OnInit {
     }, 220);
   }
 
+
+  abrirReporte(): void {
+    if (!this.selectedOferta) {
+      return;
+    }
+
+    this.reporte = { motivo: '', descripcion: '' };
+    this.reporteError = '';
+    this.reporteExito = '';
+    this.reporteOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  cerrarReporte(): void {
+    if (this.enviandoReporte) {
+      return;
+    }
+
+    this.reporteOpen = false;
+    this.reporteError = '';
+    this.cdr.detectChanges();
+  }
+
+  enviarReporte(): void {
+    if (!this.selectedOferta || this.enviandoReporte) {
+      return;
+    }
+
+    const descripcion = this.reporte.descripcion.trim();
+
+    if (!this.reporte.motivo) {
+      this.reporteError = 'Selecciona el motivo del reporte.';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (descripcion.length < 10) {
+      this.reporteError = 'Describe el problema con al menos 10 caracteres.';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.enviandoReporte = true;
+    this.reporteError = '';
+
+    this.operacionService.reportarOferta(
+      this.selectedOferta.id,
+      {
+        motivo: this.reporte.motivo,
+        descripcion
+      }
+    ).subscribe({
+      next: (response) => {
+        this.enviandoReporte = false;
+        this.reporteExito = response.message || 'Reporte enviado correctamente.';
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.enviandoReporte = false;
+        this.reporteError = err?.error?.message || 'No se pudo enviar el reporte.';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
   openInNewWindow(): void {
     if (this.selectedOferta) {
       const url = `/ofertas/${this.selectedOferta.id}`;
       window.open(url, '_blank');
     }
+  }
+
+  private obtenerFechaLocalActual(): string {
+    const hoy = new Date();
+    const anio = hoy.getFullYear();
+    const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoy.getDate()).padStart(2, '0');
+
+    return `${anio}-${mes}-${dia}`;
   }
 }

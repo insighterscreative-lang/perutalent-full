@@ -44,8 +44,17 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
 
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
+                .requestMatchers(HttpMethod.POST, "/reclamos").permitAll()
+                .requestMatchers(HttpMethod.POST, "/reportes-problemas").permitAll()
 
-                .requestMatchers("/usuarios/registro", "/usuarios/login").permitAll()
+                .requestMatchers(
+                        "/usuarios/registro",
+                        "/usuarios/login",
+                        "/usuarios/password/solicitar-codigo",
+                        "/usuarios/password/verificar-codigo",
+                        "/usuarios/password/restablecer"
+                ).permitAll()
 
                 .requestMatchers(HttpMethod.GET, "/catalogos/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/filtros/ofertas").permitAll()
@@ -72,16 +81,23 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PATCH, "/ofertas-laborales/*/finalizar").hasAuthority("ROLE_EMPLEADOR")
 
                 .requestMatchers(HttpMethod.GET, "/ofertas-laborales").hasAuthority("ROLE_EMPLEADO")
+                .requestMatchers(HttpMethod.GET, "/ofertas-laborales/paginadas").hasAuthority("ROLE_EMPLEADO")
                 .requestMatchers(HttpMethod.GET, "/ofertas-laborales/filtrar").hasAuthority("ROLE_EMPLEADO")
+                .requestMatchers(HttpMethod.GET, "/ofertas-laborales/filtrar/paginadas").hasAuthority("ROLE_EMPLEADO")
                 .requestMatchers(HttpMethod.GET, "/ofertas-laborales/para-ti").hasAuthority("ROLE_EMPLEADO")
+                .requestMatchers(HttpMethod.GET, "/ofertas-laborales/mias").hasAuthority("ROLE_EMPLEADOR")
                 .requestMatchers(HttpMethod.GET, "/ofertas-laborales/*").authenticated()
 
                 .requestMatchers(HttpMethod.GET, "/postulaciones/mis-ofertas").hasAuthority("ROLE_EMPLEADO")
+                .requestMatchers(HttpMethod.GET, "/postulaciones/mis-postulaciones").hasAuthority("ROLE_EMPLEADO")
                 .requestMatchers(HttpMethod.POST, "/postulaciones/ofertas/*").hasAuthority("ROLE_EMPLEADO")
                 .requestMatchers(HttpMethod.GET, "/postulaciones/ofertas/*/postulantes").hasAuthority("ROLE_EMPLEADOR")
+                .requestMatchers(HttpMethod.GET, "/postulaciones/ofertas/*/postulantes/filtros").hasAuthority("ROLE_EMPLEADOR")
                 .requestMatchers(HttpMethod.PUT, "/postulaciones/*/aceptar").hasAuthority("ROLE_EMPLEADOR")
                 .requestMatchers(HttpMethod.PUT, "/postulaciones/*/rechazar").hasAuthority("ROLE_EMPLEADOR")
                 .requestMatchers(HttpMethod.GET, "/postulaciones/*/cv").authenticated()
+
+                .requestMatchers(HttpMethod.POST, "/reportes/ofertas/*").hasAuthority("ROLE_EMPLEADO")
 
                 .requestMatchers(HttpMethod.GET, "/pagos/culqi/config").permitAll()
                 .requestMatchers(HttpMethod.POST, "/pagos/culqi/webhook").permitAll()

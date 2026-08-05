@@ -1,17 +1,41 @@
 import { TestBed } from '@angular/core/testing';
-import { CanActivateFn } from '@angular/router';
+import { Router } from '@angular/router';
+import { describe, beforeEach, expect, it, vi } from 'vitest';
 
-import { authGuard } from './auth-guard';
+import { AuthGuard } from './auth-guard';
+import { AuthService } from '../services/auth';
 
-describe('authGuard', () => {
-  const executeGuard: CanActivateFn = (...guardParameters) =>
-    TestBed.runInInjectionContext(() => authGuard(...guardParameters));
+describe('AuthGuard', () => {
+  let guard: AuthGuard;
+  let obtenerToken: ReturnType<typeof vi.fn>;
+  let navigate: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
+    obtenerToken = vi.fn();
+    navigate = vi.fn();
+
+    TestBed.configureTestingModule({
+      providers: [
+        AuthGuard,
+        { provide: AuthService, useValue: { obtenerToken } },
+        { provide: Router, useValue: { navigate } }
+      ]
+    });
+
+    guard = TestBed.inject(AuthGuard);
   });
 
-  it('should be created', () => {
-    expect(executeGuard).toBeTruthy();
+  it('permite el acceso cuando existe token', () => {
+    obtenerToken.mockReturnValue('jwt');
+
+    expect(guard.canActivate()).toBe(true);
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('redirige al login cuando no existe token', () => {
+    obtenerToken.mockReturnValue(null);
+
+    expect(guard.canActivate()).toBe(false);
+    expect(navigate).toHaveBeenCalledWith(['/login']);
   });
 });

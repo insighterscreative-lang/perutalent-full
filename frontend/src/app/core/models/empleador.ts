@@ -34,6 +34,7 @@ export interface TrabajoPerfil {
   experiencia?: string;
   tipoDuracion?: string;
   fechaPublicacion?: string;
+  fechaTerminoPostulacion?: string;
 
   habilidades?: HabilidadTrabajo[];
 }
@@ -60,6 +61,22 @@ export interface EmpleadorResponse {
   trabajosActivos: number;
   trabajosFinalizados: number;
 
+  trabajosActivosDetalle: TrabajoPerfil[];
+  trabajosFinalizadosDetalle: TrabajoPerfil[];
+}
+
+export interface EmpleadorPublicoResponse {
+  idEmpleador: number;
+  tipoEmpleador: string;
+  nombreComercial: string;
+  logoEmpleador: string;
+  descripcionNegocio: string;
+  aniosOperacion: number;
+  sitioWeb: string;
+  categorias: string[];
+  modalidadesContratacion: string[];
+  trabajosActivos: number;
+  trabajosFinalizados: number;
   trabajosActivosDetalle: TrabajoPerfil[];
   trabajosFinalizadosDetalle: TrabajoPerfil[];
 }

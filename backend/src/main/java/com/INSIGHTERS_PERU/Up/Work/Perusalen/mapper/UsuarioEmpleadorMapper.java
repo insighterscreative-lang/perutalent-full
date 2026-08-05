@@ -5,10 +5,12 @@ import java.util.List;
 import org.springframework.stereotype.Component;
 
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.TrabajoPerfilDTO;
+import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.UsuarioEmpleadorPublicoResponseDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.UsuarioEmpleadorRequestDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.UsuarioEmpleadorResponseDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.model.entity.OfertaLaboral;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.model.entity.UsuarioEmpleador;
+import com.INSIGHTERS_PERU.Up.Work.Perusalen.util.FechaPeru;
 
 @Component
 public class UsuarioEmpleadorMapper {
@@ -84,6 +86,27 @@ public class UsuarioEmpleadorMapper {
         return dto;
     }
 
+    public UsuarioEmpleadorPublicoResponseDTO toPublicResponseDTO(UsuarioEmpleadorResponseDTO perfilCompleto) {
+
+        UsuarioEmpleadorPublicoResponseDTO dto = new UsuarioEmpleadorPublicoResponseDTO();
+
+        dto.setIdEmpleador(perfilCompleto.getIdEmpleador());
+        dto.setTipoEmpleador(perfilCompleto.getTipoEmpleador());
+        dto.setNombreComercial(perfilCompleto.getNombreComercial());
+        dto.setLogoEmpleador(perfilCompleto.getLogoEmpleador());
+        dto.setDescripcionNegocio(perfilCompleto.getDescripcionNegocio());
+        dto.setAniosOperacion(perfilCompleto.getAniosOperacion());
+        dto.setCategorias(perfilCompleto.getCategorias());
+        dto.setTrabajosActivos(perfilCompleto.getTrabajosActivos());
+        dto.setTrabajosFinalizados(perfilCompleto.getTrabajosFinalizados());
+        dto.setTrabajosActivosDetalle(perfilCompleto.getTrabajosActivosDetalle());
+        dto.setTrabajosFinalizadosDetalle(perfilCompleto.getTrabajosFinalizadosDetalle());
+        dto.setModalidadesContratacion(perfilCompleto.getModalidadesContratacion());
+        dto.setSitioWeb(perfilCompleto.getSitioWeb());
+
+        return dto;
+    }
+
     public TrabajoPerfilDTO toTrabajoPerfilDTO(OfertaLaboral oferta) {
 
         TrabajoPerfilDTO dto = new TrabajoPerfilDTO();
@@ -91,11 +114,23 @@ public class UsuarioEmpleadorMapper {
         dto.setIdOferta(oferta.getId());
         dto.setTitulo(oferta.getTitulo());
         dto.setDescripcion(oferta.getDescripcion());
-        dto.setEstadoOferta(oferta.getEstadoOferta());
+
+        String estadoVisible = oferta.getEstadoOferta();
+
+        if ("ABIERTA".equals(estadoVisible)
+                && (FechaPeru.estaVencida(oferta.getFechaTerminoPostulacion()))) {
+            estadoVisible = "FINALIZADA";
+        }
+
+        dto.setEstadoOferta(estadoVisible);
         dto.setMontoTotal(oferta.getMontoTotal());
 
         if (oferta.getFechaPublicacion() != null) {
             dto.setFechaPublicacion(oferta.getFechaPublicacion().toString());
+        }
+
+        if (oferta.getFechaTerminoPostulacion() != null) {
+            dto.setFechaTerminoPostulacion(oferta.getFechaTerminoPostulacion().toString());
         }
 
         if (oferta.getIdEmpleador() != null) {

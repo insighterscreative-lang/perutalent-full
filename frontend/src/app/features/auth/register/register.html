@@ -41,7 +41,16 @@
           [(ngModel)]="password"
           name="password"
           required
+          (input)="error=''"
         >
+
+        <ul class="password-rules" aria-label="Requisitos de contraseña">
+          <li [class.valid]="passwordTieneLongitud">Mínimo 8 caracteres</li>
+          <li [class.valid]="passwordTieneMayuscula">Una letra mayúscula</li>
+          <li [class.valid]="passwordTieneMinuscula">Una letra minúscula</li>
+          <li [class.valid]="passwordTieneNumero">Un número</li>
+          <li [class.valid]="passwordTieneEspecial">Un carácter especial: @$!%*?&</li>
+        </ul>
 
         <input
           class="input"
@@ -63,7 +72,43 @@
           <option value="empleador">Busco talento</option>
         </select>
 
-        <button class="btn" type="submit" [disabled]="loading">
+
+        <div class="terms-box">
+          <label class="terms-check">
+            <input
+              type="checkbox"
+              name="aceptaTerminos"
+              [(ngModel)]="aceptaTerminos"
+            >
+            <span>
+              Acepto los
+              <a routerLink="/terminos-condiciones" target="_blank">Términos y Condiciones</a>
+              y la
+              <a routerLink="/politica-privacidad" target="_blank">Política de Privacidad</a>.
+            </span>
+          </label>
+
+          <button
+            type="button"
+            class="terms-toggle"
+            (click)="mostrarResumenTerminos = !mostrarResumenTerminos"
+          >
+            {{ mostrarResumenTerminos ? 'Ocultar resumen' : 'Ver resumen de condiciones' }}
+          </button>
+
+          <div class="terms-summary" *ngIf="mostrarResumenTerminos">
+            <p>
+              Al crear tu cuenta autorizas el tratamiento de tus datos para gestionar tu usuario,
+              perfil, ofertas, postulaciones, suscripciones y comunicaciones de la plataforma.
+            </p>
+            <p>
+              También declaras que la información registrada es verdadera y que usarás PeruTalent
+              respetando sus reglas de uso.
+            </p>
+          </div>
+        </div>
+
+        <button class="btn" type="submit" [disabled]="loading || !aceptaTerminos || !passwordValida || password !== confirmPassword">
           {{ loading ? 'Creando cuenta...' : 'Crear cuenta' }}
         </button>
 

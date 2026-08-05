@@ -6,9 +6,11 @@ import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.MetadataDirective;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
@@ -85,6 +87,50 @@ public class S3StorageService {
                 ),
                 "No se pudo subir el CV del perfil a S3: "
         );
+    }
+
+    public String copiarCvPerfilAPostulacion(String cvPerfilKey, Long idUsuario, Long idOferta) {
+        if (cvPerfilKey == null || cvPerfilKey.isBlank()) {
+            throw new RuntimeException("No tienes un CV cargado en tu perfil");
+        }
+
+        if (esUrlPublica(cvPerfilKey) || cvPerfilKey.trim().startsWith("/")) {
+            throw new RuntimeException("Tu CV actual no está guardado en Amazon S3. Actualiza el CV de tu perfil o sube un CV nuevo para postular.");
+        }
+
+        String extension = obtenerExtension(cvPerfilKey);
+        String fecha = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        String nombreFinal = fecha + "-" + UUID.randomUUID() + "-perfil" + extension;
+
+        String nuevaKey = normalizarPrefix(prefix)
+                + "/postulaciones"
+                + "/usuario-" + idUsuario
+                + "/oferta-" + idOferta
+                + "/" + nombreFinal;
+
+        try {
+            CopyObjectRequest copyObjectRequest = CopyObjectRequest.builder()
+                    .copySource(bucketName + "/" + cvPerfilKey)
+                    .bucket(bucketName)
+                    .key(nuevaKey)
+                    .contentType("application/pdf")
+                    .metadata(Map.of(
+                            "origen", "cv-perfil",
+                            "ruta-original", cvPerfilKey,
+                            "id-usuario", String.valueOf(idUsuario),
+                            "id-oferta", String.valueOf(idOferta),
+                            "tipo", "cv-postulacion"
+                    ))
+                    .metadataDirective(MetadataDirective.REPLACE)
+                    .build();
+
+            s3Client.copyObject(copyObjectRequest);
+
+            return nuevaKey;
+
+        } catch (Exception e) {
+            throw new RuntimeException("No se pudo copiar el CV del perfil para la postulación en S3: " + e.getMessage());
+        }
     }
 
 

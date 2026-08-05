@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.UsuarioEmpleadoPublicoResponseDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.UsuarioEmpleadoRequestDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.UsuarioEmpleadoResponseDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.exception.BadRequestException;
@@ -523,7 +524,7 @@ public class UsuarioEmpleadoService {
     }
 
     @Transactional(readOnly = true)
-    public UsuarioEmpleadoResponseDTO obtenerPerfilPublico(Long idEmpleado) {
+    public UsuarioEmpleadoPublicoResponseDTO obtenerPerfilPublico(Long idEmpleado) {
 
         UsuarioEmpleado empleado = usuarioEmpleadoRepository
                 .findById(idEmpleado)
@@ -536,6 +537,6 @@ public class UsuarioEmpleadoService {
         llenarRelaciones(response, empleado);
         llenarTrabajos(response, empleado);
 
-        return response;
+        return usuarioEmpleadoMapper.toPublicResponseDTO(response);
     }
 }

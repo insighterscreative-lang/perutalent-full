@@ -1,5 +1,7 @@
 package com.INSIGHTERS_PERU.Up.Work.Perusalen.dto;
 
+import com.INSIGHTERS_PERU.Up.Work.Perusalen.validation.PasswordPolicy;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
@@ -19,12 +21,10 @@ public class UsuarioRegisterRequestDTO {
     private String email;
 
     @NotBlank(message = "La contraseña es obligatoria")
-    @Pattern(
-        regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).{8,}$",
-        message = "La contraseña debe tener al menos 8 caracteres, incluyendo mayúsculas, minúsculas, números y caracteres especiales"
-    )
+    @Pattern(regexp = PasswordPolicy.REGEX, message = PasswordPolicy.MESSAGE)
     private String password;
 
     private Boolean esEmpleado;
     private Boolean esEmpleador;
+    private Boolean aceptaTerminos;
 }

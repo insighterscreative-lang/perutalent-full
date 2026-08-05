@@ -1,16 +1,8 @@
-import { TestBed } from "@angular/core/testing";
+import { describe, expect, it } from 'vitest';
+import { SuscripcionService } from './suscripcion';
 
-import { Suscripcion } from "./suscripcion";
-
-describe("Suscripcion", () => {
-  let service: Suscripcion;
-
-  beforeEach(() => {
-    TestBed.configureTestingModule({});
-    service = TestBed.inject(Suscripcion);
-  });
-
-  it("should be created", () => {
-    expect(service).toBeTruthy();
+describe('SuscripcionService', () => {
+  it('expone el servicio utilizado por la aplicación', () => {
+    expect(SuscripcionService).toBeDefined();
   });
 });

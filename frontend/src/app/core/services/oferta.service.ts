@@ -39,6 +39,16 @@ export interface FiltrosResponse {
   rangosSalario: RangoSalarioDTO[];
 }
 
+export interface PaginaResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -61,8 +71,24 @@ export class OfertaService {
     return this.http.patch<ApiResponse<Oferta>>(`${this.apiUrl}/${id}/finalizar`, null);
   }
 
-  getOfertas(): Observable<Oferta[]> {
-    return this.http.get<Oferta[]>(this.apiUrl);
+  eliminarOferta(id: number): Observable<ApiResponse<void>> {
+    return this.http.delete<ApiResponse<void>>(`${this.apiUrl}/${id}`);
+  }
+
+  getOfertas(page = 0, size = 12): Observable<PaginaResponse<Oferta>> {
+    return this.http.get<PaginaResponse<Oferta>>(`${this.apiUrl}/paginadas`, {
+      params: { page, size }
+    });
+  }
+
+  getMisOfertas(
+    estado: 'ACTIVAS' | 'FINALIZADAS',
+    page = 0,
+    size = 6
+  ): Observable<ApiResponse<PaginaResponse<Oferta>>> {
+    return this.http.get<ApiResponse<PaginaResponse<Oferta>>>(`${this.apiUrl}/mias`, {
+      params: { estado, page, size }
+    });
   }
 
   getOfertaById(id: number): Observable<Oferta> {
@@ -77,8 +103,14 @@ export class OfertaService {
     return this.http.get<FiltrosResponse>(this.filtrosUrl);
   }
 
-  filtrarOfertas(filtros: FiltrosOfertas): Observable<Oferta[]> {
-    let params = new HttpParams();
+  filtrarOfertas(
+    filtros: FiltrosOfertas,
+    page = 0,
+    size = 12
+  ): Observable<PaginaResponse<Oferta>> {
+    let params = new HttpParams()
+      .set('page', page)
+      .set('size', size);
     if (filtros.categoria) params = params.set('categoria', filtros.categoria);
     if (filtros.modalidad) params = params.set('modalidad', filtros.modalidad);
     if (filtros.experiencia) params = params.set('experiencia', filtros.experiencia);
@@ -90,6 +122,6 @@ export class OfertaService {
       params = params.set('sortBy', filtros.sortBy);
       params = params.set('order', filtros.order || 'asc');
     }
-    return this.http.get<Oferta[]>(`${this.apiUrl}/filtrar`, { params });
+    return this.http.get<PaginaResponse<Oferta>>(`${this.apiUrl}/filtrar/paginadas`, { params });
   }
 }

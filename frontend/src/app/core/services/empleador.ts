@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { ApiResponse, EmpleadorRequest, EmpleadorResponse } from 'src/app/core/models/empleador';
+import { ApiResponse, EmpleadorPublicoResponse, EmpleadorRequest, EmpleadorResponse } from 'src/app/core/models/empleador';
 import { environment } from 'src/enviroments/enviroment';
 
 @Injectable({
@@ -22,8 +22,8 @@ export class EmpleadorService {
     return this.http.get<ApiResponse<EmpleadorResponse>>(`${this.apiUrl}/perfil`);
   }
 
-  obtenerPerfilPublico(idEmpleador: number): Observable<ApiResponse<EmpleadorResponse>> {
-    return this.http.get<ApiResponse<EmpleadorResponse>>(`${this.apiUrl}/perfil-publico/${idEmpleador}`);
+  obtenerPerfilPublico(idEmpleador: number): Observable<ApiResponse<EmpleadorPublicoResponse>> {
+    return this.http.get<ApiResponse<EmpleadorPublicoResponse>>(`${this.apiUrl}/perfil-publico/${idEmpleador}`);
   }
 
   editarPerfil(dto: EmpleadorRequest, logo?: File | null): Observable<ApiResponse<string>> {

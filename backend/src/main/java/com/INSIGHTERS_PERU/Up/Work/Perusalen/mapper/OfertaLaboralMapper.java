@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.HabilidadesResponseDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.OfertaLaboralResponseDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.model.entity.OfertaLaboral;
+import com.INSIGHTERS_PERU.Up.Work.Perusalen.util.FechaPeru;
 
 import lombok.AllArgsConstructor;
 
@@ -25,6 +26,13 @@ public class OfertaLaboralMapper {
                                 h.getIdHabilidad().getNombreHabilidad()
                         ))
                         .toList();
+
+        String estadoVisible = oferta.getEstadoOferta();
+
+        if ("ABIERTA".equals(estadoVisible)
+                && (FechaPeru.estaVencida(oferta.getFechaTerminoPostulacion()))) {
+            estadoVisible = "FINALIZADA";
+        }
 
         return new OfertaLaboralResponseDTO(
                 oferta.getId(),
@@ -47,7 +55,7 @@ public class OfertaLaboralMapper {
                 oferta.getTareasEspecificas(),
                 oferta.getCantidadDuracion(),
                 oferta.getFechaTerminoPostulacion(),
-                oferta.getEstadoOferta(),
+                estadoVisible,
                 habilidades,
                 oferta.getFechaPublicacion()
         );

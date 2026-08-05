@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { ApiResponse, EmpleadoRequest, EmpleadoResponse } from 'src/app/core/models/empleado';
+import { ApiResponse, EmpleadoPublicoResponse, EmpleadoRequest, EmpleadoResponse } from 'src/app/core/models/empleado';
 import { environment } from 'src/enviroments/enviroment';
 
 @Injectable({
@@ -41,8 +41,8 @@ export class EmpleadoService {
     });
   }
 
-  obtenerPerfilPublico(idEmpleado: number) {
-    return this.http.get<any>(`${this.apiUrl}/perfil-publico/${idEmpleado}`);
+  obtenerPerfilPublico(idEmpleado: number): Observable<ApiResponse<EmpleadoPublicoResponse>> {
+    return this.http.get<ApiResponse<EmpleadoPublicoResponse>>(`${this.apiUrl}/perfil-publico/${idEmpleado}`);
   }
 
   obtenerUrlFotoPerfilPublica(idEmpleado: number, fotoPerfil?: string | null): string {

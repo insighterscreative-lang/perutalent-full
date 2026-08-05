@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.stereotype.Component;
 
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.TrabajoPerfilDTO;
+import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.UsuarioEmpleadoPublicoResponseDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.UsuarioEmpleadoRequestDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.dto.UsuarioEmpleadoResponseDTO;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.model.entity.OfertaLaboral;
@@ -130,6 +131,30 @@ public class UsuarioEmpleadoMapper {
 
         dto.setTrabajosActivosDetalle(List.of());
         dto.setTrabajosFinalizadosDetalle(List.of());
+
+        return dto;
+    }
+
+    public UsuarioEmpleadoPublicoResponseDTO toPublicResponseDTO(UsuarioEmpleadoResponseDTO perfilCompleto) {
+
+        UsuarioEmpleadoPublicoResponseDTO dto = new UsuarioEmpleadoPublicoResponseDTO();
+
+        dto.setIdEmpleado(perfilCompleto.getIdEmpleado());
+        dto.setNombre(perfilCompleto.getNombre());
+        dto.setApellido(perfilCompleto.getApellido());
+        dto.setFotoPerfil(perfilCompleto.getFotoPerfil());
+        dto.setDistrito(perfilCompleto.getDistrito());
+        dto.setDescripcion(perfilCompleto.getDescripcion());
+        dto.setIdiomas(perfilCompleto.getIdiomas());
+        dto.setHabilidades(perfilCompleto.getHabilidades());
+        dto.setCategorias(perfilCompleto.getCategorias());
+        dto.setDisponibilidadEquipo(perfilCompleto.getDisponibilidadEquipo());
+        dto.setHerramientas(perfilCompleto.getHerramientas());
+        dto.setModalidades(perfilCompleto.getModalidades());
+        dto.setTrabajosActivos(perfilCompleto.getTrabajosActivos());
+        dto.setTrabajosFinalizados(perfilCompleto.getTrabajosFinalizados());
+        dto.setTrabajosActivosDetalle(perfilCompleto.getTrabajosActivosDetalle());
+        dto.setTrabajosFinalizadosDetalle(perfilCompleto.getTrabajosFinalizadosDetalle());
 
         return dto;
     }

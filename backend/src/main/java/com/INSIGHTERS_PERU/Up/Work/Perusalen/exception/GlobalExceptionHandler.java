@@ -51,6 +51,11 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
     }
 
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<ApiError> handleTooManyRequests(TooManyRequestsException ex) {
+        return buildResponse(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
+    }
+
     @ExceptionHandler(DuplicateApplicationException.class)
     public ResponseEntity<ApiError> handleDuplicate(DuplicateApplicationException ex) {
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage());

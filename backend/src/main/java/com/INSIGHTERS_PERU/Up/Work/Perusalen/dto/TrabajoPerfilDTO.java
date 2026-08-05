@@ -36,6 +36,8 @@ public class TrabajoPerfilDTO {
 
     private String fechaPublicacion;
 
+    private String fechaTerminoPostulacion;
+
     private List<HabilidadTrabajoDTO> habilidades;
 
     @Data
