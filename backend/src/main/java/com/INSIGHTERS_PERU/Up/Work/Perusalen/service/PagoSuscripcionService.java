@@ -303,6 +303,13 @@ public class PagoSuscripcionService {
             throw new RuntimeException("No tienes una suscripción Premium activa para cancelar.");
         }
 
+        if (!Boolean.TRUE.equals(suscripcion.getRenovacionAutomatica())) {
+            throw new RuntimeException(
+                    "La renovación automática de tu suscripción Premium ya está cancelada. "
+                            + "Mantendrás los beneficios hasta finalizar el periodo pagado."
+            );
+        }
+
         if (suscripcion.getCulqiSubscriptionId() == null
                 || suscripcion.getCulqiSubscriptionId().isBlank()) {
             throw new RuntimeException("La suscripción Premium no tiene un identificador válido de Culqi.");

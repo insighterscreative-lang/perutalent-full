@@ -226,17 +226,7 @@ public class SuscripcionService {
     @Transactional
     public MiSuscripcionDTO cancelarSuscripcionLocal(Long idUsuario, String motivo) {
         SuscripcionUsuario suscripcionActual = obtenerSuscripcionActualEntidad(idUsuario);
-
-        suscripcionActual.setEstadoSuscripcion(ESTADO_CANCELADA);
-        suscripcionActual.setRenovacionAutomatica(false);
-        suscripcionActual.setFechaCancelacion(LocalDateTime.now());
-        suscripcionActual.setMotivoCancelacion(motivo);
-        suscripcionActual.setFechaActualizacion(LocalDateTime.now());
-        suscripcionUsuarioRepository.save(suscripcionActual);
-
-        Usuario usuario = suscripcionActual.getUsuario();
-        SuscripcionUsuario gratuita = crearSuscripcionGratuita(usuario);
-        return convertirMiSuscripcionDTO(gratuita);
+        return cancelarRenovacionConAccesoHastaFinDelPeriodo(suscripcionActual, motivo);
     }
 
     @Transactional
@@ -245,14 +235,49 @@ public class SuscripcionService {
                 .findFirstByCulqiSubscriptionIdOrderByFechaCreacionDesc(culqiSubscriptionId)
                 .orElseThrow(() -> new RuntimeException("No se encontró la suscripción local de Culqi."));
 
-        suscripcion.setEstadoSuscripcion(ESTADO_CANCELADA);
+        return cancelarRenovacionConAccesoHastaFinDelPeriodo(suscripcion, motivo);
+    }
+
+    /**
+     * Culqi cancela la recurrencia de forma inmediata, pero el usuario ya pagó
+     * el periodo vigente. Por eso se desactiva la renovación automática y se
+     * conserva el plan Premium como ACTIVO hasta la fecha_fin registrada.
+     *
+     * Si el periodo ya venció (o no tiene una fecha fin válida), se cierra la
+     * suscripción y se devuelve/crea el plan gratuito inmediatamente.
+     */
+    private MiSuscripcionDTO cancelarRenovacionConAccesoHastaFinDelPeriodo(
+            SuscripcionUsuario suscripcion,
+            String motivo
+    ) {
+        LocalDate hoy = FechaPeru.hoy();
+        LocalDateTime ahora = FechaPeru.ahora();
+        LocalDate fechaFin = suscripcion.getFechaFin();
+
         suscripcion.setRenovacionAutomatica(false);
-        suscripcion.setFechaCancelacion(LocalDateTime.now());
+        suscripcion.setFechaProximoCobro(null);
+
+        if (suscripcion.getFechaCancelacion() == null) {
+            suscripcion.setFechaCancelacion(ahora);
+        }
+
         suscripcion.setMotivoCancelacion(motivo);
-        suscripcion.setFechaActualizacion(LocalDateTime.now());
+        suscripcion.setFechaActualizacion(ahora);
+
+        boolean periodoPagadoVigente = esPremium(suscripcion.getPlan())
+                && fechaFin != null
+                && !fechaFin.isBefore(hoy);
+
+        if (periodoPagadoVigente) {
+            suscripcion.setEstadoSuscripcion(ESTADO_ACTIVA);
+            SuscripcionUsuario guardada = suscripcionUsuarioRepository.save(suscripcion);
+            return convertirMiSuscripcionDTO(guardada);
+        }
+
+        suscripcion.setEstadoSuscripcion(ESTADO_CANCELADA);
         suscripcionUsuarioRepository.save(suscripcion);
 
-        SuscripcionUsuario gratuita = crearSuscripcionGratuita(suscripcion.getUsuario());
+        SuscripcionUsuario gratuita = obtenerOCrearSuscripcionGratuita(suscripcion.getUsuario());
         return convertirMiSuscripcionDTO(gratuita);
     }
 
@@ -449,10 +474,10 @@ public class SuscripcionService {
 
         LocalDate fechaFin = suscripcion.getFechaFin();
 
-        if (fechaFin != null && fechaFin.isBefore(LocalDate.now())) {
+        if (fechaFin != null && fechaFin.isBefore(FechaPeru.hoy())) {
             suscripcion.setEstadoSuscripcion(ESTADO_VENCIDA);
             suscripcion.setRenovacionAutomatica(false);
-            suscripcion.setFechaActualizacion(LocalDateTime.now());
+            suscripcion.setFechaActualizacion(FechaPeru.ahora());
             suscripcionUsuarioRepository.save(suscripcion);
         }
 
