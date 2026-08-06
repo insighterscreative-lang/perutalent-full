@@ -599,7 +599,7 @@ public class CulqiService {
             return null;
         }
 
-        for (String key : List.of("user_message", "merchant_message", "message")) {
+        for (String key : List.of("merchant_message", "user_message", "message")) {
             Object value = errorMap.get(key);
             if (value != null && !value.toString().isBlank()) {
                 return value.toString();
