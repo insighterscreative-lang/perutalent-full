@@ -14,6 +14,7 @@ import com.INSIGHTERS_PERU.Up.Work.Perusalen.util.FechaPeru;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -27,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -54,8 +56,6 @@ class SuscripcionServiceCancelacionTest {
                 ofertaLaboralRepository
         );
 
-        when(suscripcionUsuarioRepository.save(any(SuscripcionUsuario.class)))
-                .thenAnswer(invocacion -> invocacion.getArgument(0));
     }
 
     @Test
@@ -63,6 +63,7 @@ class SuscripcionServiceCancelacionTest {
         Usuario usuario = crearUsuario(10L);
         LocalDate fechaFinPagada = FechaPeru.hoy().plusDays(20);
         SuscripcionUsuario premium = crearPremiumActivo(usuario, fechaFinPagada);
+        prepararGuardado();
 
         when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
         when(suscripcionUsuarioRepository
@@ -96,6 +97,7 @@ class SuscripcionServiceCancelacionTest {
         Usuario usuario = crearUsuario(20L);
         LocalDate fechaFinPagada = FechaPeru.hoy().plusDays(5);
         SuscripcionUsuario premium = crearPremiumActivo(usuario, fechaFinPagada);
+        prepararGuardado();
 
         when(suscripcionUsuarioRepository
                 .findFirstByCulqiSubscriptionIdOrderByFechaCreacionDesc(
@@ -115,11 +117,115 @@ class SuscripcionServiceCancelacionTest {
         verify(planSuscripcionRepository, never()).findByNombrePlan("GRATUITO");
     }
 
+
+    @Test
+    void premiumVencidaSeCierraAntesDeCrearElPlanGratuito() {
+        Usuario usuario = crearUsuario(30L);
+        SuscripcionUsuario premiumVencida = crearPremiumActivo(
+                usuario,
+                FechaPeru.hoy().minusDays(1)
+        );
+        premiumVencida.setRenovacionAutomatica(false);
+
+        PlanSuscripcion gratuito = crearPlanGratuito();
+        prepararGuardado();
+
+        when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findByIdForUpdate(usuario.getId())).thenReturn(Optional.of(usuario));
+        when(suscripcionUsuarioRepository
+                .findFirstByUsuario_IdAndEstadoSuscripcionInOrderByFechaCreacionDesc(
+                        any(Long.class),
+                        anyList()
+                ))
+                .thenReturn(Optional.of(premiumVencida), Optional.of(premiumVencida));
+        when(planSuscripcionRepository.findByNombrePlan("GRATUITO"))
+                .thenReturn(Optional.of(gratuito));
+        when(suscripcionUsuarioRepository.saveAndFlush(any(SuscripcionUsuario.class)))
+                .thenAnswer(invocacion -> invocacion.getArgument(0));
+
+        MiSuscripcionDTO resultado = suscripcionService.obtenerMiSuscripcion(usuario.getId());
+
+        assertEquals("GRATUITO", resultado.getNombrePlan());
+        assertEquals("ACTIVA", resultado.getEstadoSuscripcion());
+        assertFalse(resultado.getRenovacionAutomatica());
+
+        assertEquals("VENCIDA", premiumVencida.getEstadoSuscripcion());
+        assertFalse(premiumVencida.getRenovacionAutomatica());
+        assertNull(premiumVencida.getFechaProximoCobro());
+
+        InOrder ordenPersistencia = inOrder(suscripcionUsuarioRepository);
+        ordenPersistencia.verify(suscripcionUsuarioRepository).saveAndFlush(premiumVencida);
+        ordenPersistencia.verify(suscripcionUsuarioRepository).save(any(SuscripcionUsuario.class));
+    }
+
+    @Test
+    void siOtraPeticionYaCreoElPlanGratuitoNoSeInsertaOtro() {
+        Usuario usuario = crearUsuario(40L);
+        SuscripcionUsuario premiumVencida = crearPremiumActivo(
+                usuario,
+                FechaPeru.hoy().minusDays(1)
+        );
+        SuscripcionUsuario gratuitaActiva = crearSuscripcionGratuitaActiva(usuario);
+
+        when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findByIdForUpdate(usuario.getId())).thenReturn(Optional.of(usuario));
+        when(suscripcionUsuarioRepository
+                .findFirstByUsuario_IdAndEstadoSuscripcionInOrderByFechaCreacionDesc(
+                        any(Long.class),
+                        anyList()
+                ))
+                .thenReturn(Optional.of(premiumVencida), Optional.of(gratuitaActiva));
+
+        MiSuscripcionDTO resultado = suscripcionService.obtenerMiSuscripcion(usuario.getId());
+
+        assertEquals("GRATUITO", resultado.getNombrePlan());
+        assertEquals("ACTIVA", resultado.getEstadoSuscripcion());
+        verify(suscripcionUsuarioRepository, never()).saveAndFlush(any(SuscripcionUsuario.class));
+        verify(suscripcionUsuarioRepository, never()).save(any(SuscripcionUsuario.class));
+    }
+
+    private void prepararGuardado() {
+        when(suscripcionUsuarioRepository.save(any(SuscripcionUsuario.class)))
+                .thenAnswer(invocacion -> invocacion.getArgument(0));
+    }
+
     private Usuario crearUsuario(Long id) {
         Usuario usuario = new Usuario();
         usuario.setId(id);
         usuario.setEmail("usuario" + id + "@example.com");
         return usuario;
+    }
+
+
+    private PlanSuscripcion crearPlanGratuito() {
+        PlanSuscripcion gratuito = new PlanSuscripcion();
+        gratuito.setId(1L);
+        gratuito.setNombrePlan("GRATUITO");
+        gratuito.setDescripcion("Plan Gratuito");
+        gratuito.setPrecioCentimos(0);
+        gratuito.setMoneda("PEN");
+        gratuito.setDuracionDias(null);
+        gratuito.setMaxPostulacionesMes(5);
+        gratuito.setMaxRecomendaciones(2);
+        gratuito.setMaxOfertasActivas(3);
+        gratuito.setPrioridadPostulante(false);
+        gratuito.setOfertasDestacadas(false);
+        gratuito.setActivo(true);
+        return gratuito;
+    }
+
+    private SuscripcionUsuario crearSuscripcionGratuitaActiva(Usuario usuario) {
+        SuscripcionUsuario suscripcion = new SuscripcionUsuario();
+        suscripcion.setId(300L + usuario.getId());
+        suscripcion.setUsuario(usuario);
+        suscripcion.setPlan(crearPlanGratuito());
+        suscripcion.setEstadoSuscripcion("ACTIVA");
+        suscripcion.setFechaInicio(FechaPeru.hoy());
+        suscripcion.setFechaFin(null);
+        suscripcion.setRenovacionAutomatica(false);
+        suscripcion.setFechaCreacion(LocalDateTime.now());
+        suscripcion.setFechaActualizacion(LocalDateTime.now());
+        return suscripcion;
     }
 
     private SuscripcionUsuario crearPremiumActivo(Usuario usuario, LocalDate fechaFin) {

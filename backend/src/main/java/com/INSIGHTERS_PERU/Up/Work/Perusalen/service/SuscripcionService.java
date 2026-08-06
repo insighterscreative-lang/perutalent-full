@@ -23,6 +23,7 @@ import java.time.YearMonth;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class SuscripcionService {
@@ -275,7 +276,10 @@ public class SuscripcionService {
         }
 
         suscripcion.setEstadoSuscripcion(ESTADO_CANCELADA);
-        suscripcionUsuarioRepository.save(suscripcion);
+
+        // Primero se cierra y se sincroniza la suscripción anterior; solo después se
+        // crea el plan gratuito para no violar uq_suscripcion_usuario_activa.
+        suscripcionUsuarioRepository.saveAndFlush(suscripcion);
 
         SuscripcionUsuario gratuita = obtenerOCrearSuscripcionGratuita(suscripcion.getUsuario());
         return convertirMiSuscripcionDTO(gratuita);
@@ -424,14 +428,57 @@ public class SuscripcionService {
 
     @Transactional
     public SuscripcionUsuario obtenerOCrearSuscripcionGratuita(Usuario usuario) {
+        // Ruta rápida: si existe una suscripción activa que todavía otorga beneficios,
+        // no es necesario bloquear al usuario ni escribir en la base de datos.
+        SuscripcionUsuario suscripcionActual = buscarSuscripcionActiva(usuario.getId()).orElse(null);
+
+        if (suscripcionActual != null && !requiereTransicionAutomatica(suscripcionActual)) {
+            return suscripcionActual;
+        }
+
+        /*
+         * La transición de PREMIUM vencida a GRATUITO debe ser atómica. El bloqueo
+         * pesimista del usuario evita que dos peticiones simultáneas intenten crear
+         * dos planes gratuitos y choquen con uq_suscripcion_usuario_activa.
+         */
+        Usuario usuarioBloqueado = usuarioRepository.findByIdForUpdate(usuario.getId())
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado."));
+
+        // Volvemos a consultar después de adquirir el bloqueo, porque otra petición
+        // pudo haber completado la transición mientras esperábamos.
+        SuscripcionUsuario suscripcionTrasBloqueo = buscarSuscripcionActiva(usuario.getId()).orElse(null);
+
+        if (suscripcionTrasBloqueo != null) {
+            SuscripcionUsuario normalizada = normalizarSuscripcionVigente(suscripcionTrasBloqueo);
+
+            if (ESTADO_ACTIVA.equalsIgnoreCase(normalizada.getEstadoSuscripcion())) {
+                return normalizada;
+            }
+        }
+
+        return crearSuscripcionGratuita(usuarioBloqueado);
+    }
+
+    private Optional<SuscripcionUsuario> buscarSuscripcionActiva(Long idUsuario) {
         return suscripcionUsuarioRepository
                 .findFirstByUsuario_IdAndEstadoSuscripcionInOrderByFechaCreacionDesc(
-                        usuario.getId(),
+                        idUsuario,
                         estadosVigentesParaBeneficios()
-                )
-                .map(this::normalizarSuscripcionVigente)
-                .filter(suscripcion -> ESTADO_ACTIVA.equalsIgnoreCase(suscripcion.getEstadoSuscripcion()))
-                .orElseGet(() -> crearSuscripcionGratuita(usuario));
+                );
+    }
+
+    private boolean requiereTransicionAutomatica(SuscripcionUsuario suscripcion) {
+        if (suscripcion == null
+                || !ESTADO_ACTIVA.equalsIgnoreCase(suscripcion.getEstadoSuscripcion())
+                || !esPremium(suscripcion.getPlan())) {
+            return false;
+        }
+
+        LocalDate fechaFin = suscripcion.getFechaFin();
+
+        // Una suscripción Premium sin fecha fin no debe otorgar beneficios de forma
+        // indefinida por un dato incompleto.
+        return fechaFin == null || fechaFin.isBefore(FechaPeru.hoy());
     }
 
     @Transactional
@@ -460,28 +507,21 @@ public class SuscripcionService {
     }
 
     private SuscripcionUsuario normalizarSuscripcionVigente(SuscripcionUsuario suscripcion) {
-        if (suscripcion == null) {
-            return null;
-        }
-
-        if (!ESTADO_ACTIVA.equalsIgnoreCase(suscripcion.getEstadoSuscripcion())) {
+        if (suscripcion == null || !requiereTransicionAutomatica(suscripcion)) {
             return suscripcion;
         }
 
-        if (!esPremium(suscripcion.getPlan())) {
-            return suscripcion;
-        }
+        suscripcion.setEstadoSuscripcion(ESTADO_VENCIDA);
+        suscripcion.setRenovacionAutomatica(false);
+        suscripcion.setFechaProximoCobro(null);
+        suscripcion.setFechaActualizacion(FechaPeru.ahora());
 
-        LocalDate fechaFin = suscripcion.getFechaFin();
-
-        if (fechaFin != null && fechaFin.isBefore(FechaPeru.hoy())) {
-            suscripcion.setEstadoSuscripcion(ESTADO_VENCIDA);
-            suscripcion.setRenovacionAutomatica(false);
-            suscripcion.setFechaActualizacion(FechaPeru.ahora());
-            suscripcionUsuarioRepository.save(suscripcion);
-        }
-
-        return suscripcion;
+        /*
+         * Es indispensable hacer flush antes de insertar el plan GRATUITO. Así
+         * PostgreSQL libera primero el índice único parcial de la suscripción ACTIVA
+         * y luego acepta la nueva fila activa.
+         */
+        return suscripcionUsuarioRepository.saveAndFlush(suscripcion);
     }
 
     private Integer obtenerOfertasActivasActuales(Usuario usuario) {
