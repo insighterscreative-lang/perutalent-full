@@ -155,7 +155,16 @@ export class SuscripcionesComponent implements OnInit {
     }
 
     if (this.miSuscripcion?.esPremium) {
-      this.cancelarSuscripcionPremium();
+      if (this.miSuscripcion.renovacionAutomatica) {
+        this.cancelarSuscripcionPremium();
+      } else {
+        const vigencia = this.miSuscripcion.fechaFin
+          ? ` hasta el ${this.miSuscripcion.fechaFin}`
+          : '';
+
+        this.mensajeExito = `La renovación automática ya está cancelada. Mantendrás Premium${vigencia}.`;
+        this.cdr.detectChanges();
+      }
       return;
     }
 
@@ -189,8 +198,14 @@ export class SuscripcionesComponent implements OnInit {
       return;
     }
 
+    const fechaFin = this.miSuscripcion?.fechaFin;
+    const textoVigencia = fechaFin
+      ? ` Mantendrás los beneficios Premium hasta el ${fechaFin}.`
+      : '';
+
     const confirmado = window.confirm(
-      '¿Deseas cancelar tu suscripción Premium? Se cancelarán los cobros automáticos futuros.'
+      `¿Deseas cancelar la renovación automática de tu suscripción Premium? ` +
+      `No se realizarán cobros automáticos futuros.${textoVigencia}`
     );
 
     if (!confirmado) {
@@ -205,7 +220,20 @@ export class SuscripcionesComponent implements OnInit {
     this.suscripcionService.cancelarPremium().subscribe({
       next: (suscripcion) => {
         this.miSuscripcion = suscripcion;
-        this.mensajeExito = 'Tu suscripción Premium fue cancelada. Ya no se realizarán cobros automáticos futuros.';
+
+        if (suscripcion.esPremium) {
+          const vigencia = suscripcion.fechaFin
+            ? ` hasta el ${suscripcion.fechaFin}`
+            : ' hasta finalizar el periodo pagado';
+
+          this.mensajeExito =
+            `La renovación automática fue cancelada. Mantendrás los beneficios Premium${vigencia}. ` +
+            `No se realizarán cobros automáticos futuros.`;
+        } else {
+          this.mensajeExito =
+            'La suscripción fue cancelada y tu cuenta quedó en el plan gratuito.';
+        }
+
         this.cancelandoSuscripcion = false;
         this.cargarMiUso();
         this.cdr.detectChanges();
@@ -598,7 +626,9 @@ export class SuscripcionesComponent implements OnInit {
     }
 
     if (this.miSuscripcion?.esPremium && !this.esPremium(plan)) {
-      return 'Cancelar Premium';
+      return this.miSuscripcion.renovacionAutomatica
+        ? 'Cancelar renovación'
+        : 'Plan gratuito al vencer';
     }
 
     if (this.esPremium(plan)) {
@@ -610,6 +640,14 @@ export class SuscripcionesComponent implements OnInit {
 
   tienePremiumRenovable(): boolean {
     return !!this.miSuscripcion?.esPremium && !!this.miSuscripcion?.renovacionAutomatica;
+  }
+
+  tienePremiumSinRenovacion(): boolean {
+    return !!this.miSuscripcion?.esPremium && !this.miSuscripcion?.renovacionAutomatica;
+  }
+
+  esPlanGratuitoPendiente(plan: PlanSuscripcion): boolean {
+    return this.tienePremiumSinRenovacion() && !this.esPremium(plan);
   }
 
   obtenerMensajeError(error: any, fallback: string): string {

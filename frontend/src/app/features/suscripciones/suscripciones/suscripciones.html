@@ -86,7 +86,7 @@
               Próximo cobro: {{ miSuscripcion.fechaProximoCobro }}
             </strong>
             <small>
-              Si cancelas, Culqi no realizará cobros automáticos futuros.
+              Si cancelas, no realizará cobros automáticos futuros.
             </small>
           </div>
 
@@ -96,8 +96,18 @@
               class="btn btn-danger"
               [disabled]="cancelandoSuscripcion || pagandoPremium || cambiandoPlan"
               (click)="cancelarSuscripcionPremium()">
-              {{ cancelandoSuscripcion ? 'Cancelando...' : 'Cancelar suscripción' }}
+              {{ cancelandoSuscripcion ? 'Cancelando...' : 'Cancelar suscipción' }}
             </button>
+          </div>
+
+          <div class="renewal-info cancelled" *ngIf="tienePremiumSinRenovacion()">
+            <span>Renovación automática cancelada</span>
+            <strong *ngIf="miSuscripcion.fechaFin">
+              Mantendrás Premium hasta el {{ miSuscripcion.fechaFin }}
+            </strong>
+            <small>
+              No se realizarán nuevos cobros. Al terminar el periodo pagado, tu cuenta pasará automáticamente al plan gratuito.
+            </small>
           </div>
         </div>
 
@@ -157,7 +167,7 @@
             class="btn plan-btn"
             [class.btn-primary]="!autenticado || !esPlanActual(plan)"
             [class.btn-disabled]="autenticado && esPlanActual(plan)"
-            [disabled]="autenticado && (esPlanActual(plan) || cambiandoPlan || pagandoPremium || cancelandoSuscripcion || (esPremium(plan) && !culqiEnabled))"
+            [disabled]="autenticado && (esPlanActual(plan) || esPlanGratuitoPendiente(plan) || cambiandoPlan || pagandoPremium || cancelandoSuscripcion || (esPremium(plan) && !culqiEnabled))"
             (click)="seleccionarPlan(plan)">
             {{ obtenerTextoBoton(plan) }}
           </button>
