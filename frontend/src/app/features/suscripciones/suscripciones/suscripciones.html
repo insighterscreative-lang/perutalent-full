@@ -215,3 +215,124 @@
   </div>
 
 </div>
+
+<div
+  class="payment-modal-backdrop"
+  *ngIf="mostrarModalDatosPago && planFormularioPago"
+  (click)="cerrarFormularioPago()">
+
+  <section
+    class="payment-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="payment-modal-title"
+    (click)="$event.stopPropagation()">
+
+    <div class="payment-modal-header">
+      <div>
+        <p class="eyebrow">Datos necesarios para Culqi</p>
+        <h2 id="payment-modal-title">Completa los datos de facturación</h2>
+        <p>
+          Solo solicitamos la dirección y la ciudad porque Culqi las exige para registrar al cliente de la suscripción.
+          Tu nombre, apellido, correo y teléfono se toman de tu perfil de PeruTalent.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        class="modal-close"
+        aria-label="Cerrar formulario de pago"
+        [disabled]="pagandoPremium"
+        (click)="cerrarFormularioPago()">
+        ×
+      </button>
+    </div>
+
+    <div class="payment-summary" [class.live]="!culqiTestMode">
+      <div>
+        <span>Plan</span>
+        <strong>{{ planFormularioPago.nombrePlan }}</strong>
+      </div>
+      <div>
+        <span>Cobro</span>
+        <strong>{{ obtenerPrecio(planFormularioPago) }} al mes</strong>
+      </div>
+      <div>
+        <span>Ambiente</span>
+        <strong>{{ culqiTestMode ? 'Prueba' : 'Producción · dinero real' }}</strong>
+      </div>
+    </div>
+
+    <form #formularioPago="ngForm" (ngSubmit)="confirmarDatosPago(formularioPago)" novalidate>
+
+      <div class="payment-form-grid">
+        <label class="payment-field payment-field-wide">
+          <span>Dirección</span>
+          <input
+            type="text"
+            name="address"
+            [(ngModel)]="datosClientePago.address"
+            minlength="5"
+            maxlength="100"
+            autocomplete="street-address"
+            placeholder="Ejemplo: Av. Javier Prado 123"
+            required>
+          <small>Dato requerido por Culqi para crear el cliente. Entre 5 y 100 caracteres.</small>
+        </label>
+
+        <label class="payment-field payment-field-wide">
+          <span>Ciudad</span>
+          <input
+            type="text"
+            name="addressCity"
+            [(ngModel)]="datosClientePago.addressCity"
+            minlength="2"
+            maxlength="30"
+            autocomplete="address-level2"
+            placeholder="Ejemplo: Lima"
+            required>
+          <small>Dato requerido por Culqi. Entre 2 y 30 caracteres.</small>
+        </label>
+      </div>
+
+      <label class="payment-consent">
+        <input
+          type="checkbox"
+          name="aceptaTerminos"
+          [(ngModel)]="datosClientePago.aceptaTerminos"
+          required>
+        <span>
+          Confirmo el cobro de <strong>{{ obtenerPrecio(planFormularioPago) }}</strong> y acepto que la suscripción
+          se renueve automáticamente cada mes hasta que la cancele desde mi cuenta.
+        </span>
+      </label>
+
+      <div class="payment-security-note">
+        En el siguiente paso, el Checkout oficial de Culqi solicitará únicamente el correo y los datos de la tarjeta
+        necesarios para tokenizarla: número, vencimiento y CVV. PeruTalent no recibe ni almacena esos datos.
+      </div>
+
+      <div class="payment-form-error" *ngIf="mensajeErrorFormulario">
+        {{ mensajeErrorFormulario }}
+      </div>
+
+      <div class="payment-modal-actions">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          [disabled]="pagandoPremium"
+          (click)="cerrarFormularioPago()">
+          Cancelar
+        </button>
+
+        <button
+          type="submit"
+          class="btn btn-primary"
+          [disabled]="pagandoPremium">
+          {{ pagandoPremium ? 'Procesando...' : 'Continuar con Culqi' }}
+        </button>
+      </div>
+
+    </form>
+  </section>
+</div>

@@ -8,11 +8,15 @@ import com.INSIGHTERS_PERU.Up.Work.Perusalen.model.entity.PagoSuscripcion;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.model.entity.PlanSuscripcion;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.model.entity.SuscripcionUsuario;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.model.entity.Usuario;
+import com.INSIGHTERS_PERU.Up.Work.Perusalen.model.entity.UsuarioEmpleado;
+import com.INSIGHTERS_PERU.Up.Work.Perusalen.model.entity.UsuarioEmpleador;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.repository.CulqiEventoRepository;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.repository.PagoSuscripcionRepository;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.repository.PlanSuscripcionRepository;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.repository.SuscripcionUsuarioRepository;
 import com.INSIGHTERS_PERU.Up.Work.Perusalen.repository.UsuarioRepository;
+import com.INSIGHTERS_PERU.Up.Work.Perusalen.repository.UsuarioEmpleadoRepository;
+import com.INSIGHTERS_PERU.Up.Work.Perusalen.repository.UsuarioEmpleadorRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -53,6 +57,8 @@ public class PagoSuscripcionService {
     private boolean culqiEnabled;
 
     private final UsuarioRepository usuarioRepository;
+    private final UsuarioEmpleadoRepository usuarioEmpleadoRepository;
+    private final UsuarioEmpleadorRepository usuarioEmpleadorRepository;
     private final PlanSuscripcionRepository planSuscripcionRepository;
     private final PagoSuscripcionRepository pagoSuscripcionRepository;
     private final SuscripcionUsuarioRepository suscripcionUsuarioRepository;
@@ -62,6 +68,8 @@ public class PagoSuscripcionService {
 
     public PagoSuscripcionService(
             UsuarioRepository usuarioRepository,
+            UsuarioEmpleadoRepository usuarioEmpleadoRepository,
+            UsuarioEmpleadorRepository usuarioEmpleadorRepository,
             PlanSuscripcionRepository planSuscripcionRepository,
             PagoSuscripcionRepository pagoSuscripcionRepository,
             SuscripcionUsuarioRepository suscripcionUsuarioRepository,
@@ -70,6 +78,8 @@ public class PagoSuscripcionService {
             CulqiService culqiService
     ) {
         this.usuarioRepository = usuarioRepository;
+        this.usuarioEmpleadoRepository = usuarioEmpleadoRepository;
+        this.usuarioEmpleadorRepository = usuarioEmpleadorRepository;
         this.planSuscripcionRepository = planSuscripcionRepository;
         this.pagoSuscripcionRepository = pagoSuscripcionRepository;
         this.suscripcionUsuarioRepository = suscripcionUsuarioRepository;
@@ -90,6 +100,12 @@ public class PagoSuscripcionService {
             throw new RuntimeException("No se recibió el token de pago de Culqi.");
         }
 
+        if (!Boolean.TRUE.equals(request.getAceptaTerminos())) {
+            throw new RuntimeException(
+                    "Debes aceptar el cobro y la renovación automática mensual para continuar."
+            );
+        }
+
         Usuario usuario = usuarioRepository.findByIdForUpdate(idUsuario)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado."));
 
@@ -105,7 +121,18 @@ public class PagoSuscripcionService {
         String culqiSubscriptionId = null;
 
         try {
-            Map<String, Object> respuestaCliente = culqiService.crearCliente(usuario.getId(), usuario.getEmail());
+            DatosPerfilCulqi datosPerfil = obtenerDatosPerfilParaCulqi(usuario);
+
+            Map<String, Object> respuestaCliente = culqiService.crearCliente(
+                    usuario.getId(),
+                    usuario.getEmail(),
+                    datosPerfil.firstName(),
+                    datosPerfil.lastName(),
+                    request.getAddress(),
+                    request.getAddressCity(),
+                    "PE",
+                    datosPerfil.phoneNumber()
+            );
             String culqiCustomerId = culqiService.obtenerCustomerId(respuestaCliente);
 
             Map<String, Object> respuestaTarjeta = culqiService.crearTarjeta(
@@ -189,6 +216,78 @@ public class PagoSuscripcionService {
             compensarSuscripcionExternaSiFueCreada(culqiSubscriptionId);
             throw ex;
         }
+    }
+
+    private DatosPerfilCulqi obtenerDatosPerfilParaCulqi(Usuario usuario) {
+        if (usuario.isEsEmpleado()) {
+            UsuarioEmpleado empleado = usuarioEmpleadoRepository.findByUsuarioId(usuario.getId())
+                    .orElseThrow(() -> new RuntimeException(
+                            "Completa tu perfil de empleado antes de suscribirte a Premium."
+                    ));
+
+            return new DatosPerfilCulqi(
+                    normalizarNombrePerfil(empleado.getNombre(), "nombre"),
+                    normalizarNombrePerfil(empleado.getApellido(), "apellido"),
+                    validarTelefonoPerfil(empleado.getTelefono())
+            );
+        }
+
+        if (usuario.isEsEmpleador()) {
+            UsuarioEmpleador empleador = usuarioEmpleadorRepository.findByUsuarioId(usuario.getId())
+                    .orElseThrow(() -> new RuntimeException(
+                            "Completa tu perfil de empleador antes de suscribirte a Premium."
+                    ));
+
+            return new DatosPerfilCulqi(
+                    normalizarNombrePerfil(empleador.getNombreComercial(), "nombre comercial"),
+                    normalizarNombrePerfil(empleador.getRazonSocial(), "razón social"),
+                    validarTelefonoPerfil(empleador.getTelefonoContacto())
+            );
+        }
+
+        throw new RuntimeException(
+                "La cuenta debe tener un perfil de empleado o empleador para realizar el pago."
+        );
+    }
+
+    private String normalizarNombrePerfil(String valor, String nombreCampo) {
+        String normalizado = valor == null
+                ? ""
+                : valor.replaceAll("[^\\p{L} ]", " ")
+                        .trim()
+                        .replaceAll("\\s+", " ");
+
+        if (normalizado.length() > 49) {
+            normalizado = normalizado.substring(0, 49).trim();
+        }
+
+        if (normalizado.length() < 2) {
+            throw new RuntimeException(
+                    "El " + nombreCampo + " del perfil no tiene un formato válido para Culqi. "
+                            + "Actualiza tu perfil antes de volver a intentar el pago."
+            );
+        }
+
+        return normalizado;
+    }
+
+    private String validarTelefonoPerfil(String telefono) {
+        String normalizado = telefono == null ? "" : telefono.replaceAll("\\D", "");
+
+        if (!normalizado.matches("^\\d{5,15}$")) {
+            throw new RuntimeException(
+                    "Completa un teléfono válido de 5 a 15 dígitos en tu perfil antes de suscribirte."
+            );
+        }
+
+        return normalizado;
+    }
+
+    private record DatosPerfilCulqi(
+            String firstName,
+            String lastName,
+            String phoneNumber
+    ) {
     }
 
     @Transactional

@@ -1,14 +1,67 @@
 package com.INSIGHTERS_PERU.Up.Work.Perusalen.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class PagoPremiumRequestDTO {
 
     private Long idPlan;
     private String tokenId;
+    private String address;
+    private String addressCity;
+    private Boolean aceptaTerminos;
+
+    public PagoPremiumRequestDTO() {
+    }
+
+    public PagoPremiumRequestDTO(
+            Long idPlan,
+            String tokenId,
+            String address,
+            String addressCity,
+            Boolean aceptaTerminos
+    ) {
+        this.idPlan = idPlan;
+        this.tokenId = tokenId;
+        this.address = address;
+        this.addressCity = addressCity;
+        this.aceptaTerminos = aceptaTerminos;
+    }
+
+    public Long getIdPlan() {
+        return idPlan;
+    }
+
+    public void setIdPlan(Long idPlan) {
+        this.idPlan = idPlan;
+    }
+
+    public String getTokenId() {
+        return tokenId;
+    }
+
+    public void setTokenId(String tokenId) {
+        this.tokenId = tokenId;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getAddressCity() {
+        return addressCity;
+    }
+
+    public void setAddressCity(String addressCity) {
+        this.addressCity = addressCity;
+    }
+
+    public Boolean getAceptaTerminos() {
+        return aceptaTerminos;
+    }
+
+    public void setAceptaTerminos(Boolean aceptaTerminos) {
+        this.aceptaTerminos = aceptaTerminos;
+    }
 }

@@ -66,25 +66,48 @@ public class CulqiService {
         this.objectMapper = objectMapper;
     }
 
-    public Map<String, Object> crearCliente(Long idUsuario, String email) {
+    public Map<String, Object> crearCliente(
+            Long idUsuario,
+            String email,
+            String firstName,
+            String lastName,
+            String address,
+            String addressCity,
+            String countryCode,
+            String phoneNumber
+    ) {
         validarConfiguracionSecreta();
 
-        if (email == null || email.isBlank()) {
-            throw new RuntimeException("El correo del usuario es obligatorio para crear el cliente en Culqi.");
-        }
+        String correoNormalizado = validarYNormalizarEmail(email);
+        String nombresNormalizados = validarYNormalizarNombre(firstName, "nombres");
+        String apellidosNormalizados = validarYNormalizarNombre(lastName, "apellidos");
+        String direccionNormalizada = validarYNormalizarLongitud(
+                address,
+                5,
+                100,
+                "La dirección"
+        );
+        String ciudadNormalizada = validarYNormalizarLongitud(
+                addressCity,
+                2,
+                30,
+                "La ciudad"
+        );
+        String codigoPaisNormalizado = validarYNormalizarCodigoPais(countryCode);
+        String telefonoNormalizado = validarYNormalizarTelefono(phoneNumber);
 
         Map<String, Object> metadata = new LinkedHashMap<>();
         metadata.put("id_usuario", idUsuario);
         metadata.put("origen", "perutalent");
 
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("first_name", obtenerNombreDesdeEmail(email));
-        body.put("last_name", "PeruTalent");
-        body.put("email", email);
-        body.put("address", "Lima");
-        body.put("address_city", "Lima");
-        body.put("country_code", "PE");
-        body.put("phone_number", "999999999");
+        body.put("first_name", nombresNormalizados);
+        body.put("last_name", apellidosNormalizados);
+        body.put("email", correoNormalizado);
+        body.put("address", direccionNormalizada);
+        body.put("address_city", ciudadNormalizada);
+        body.put("country_code", codigoPaisNormalizado);
+        body.put("phone_number", telefonoNormalizado);
         body.put("metadata", metadata);
 
         Map<String, Object> respuesta = post(
@@ -582,16 +605,79 @@ public class CulqiService {
                 : apiUrl;
     }
 
-    private String obtenerNombreDesdeEmail(String email) {
-        String nombre = email.split("@")[0]
-                .replaceAll("[^a-zA-Z0-9]", " ")
-                .trim();
+    private String validarYNormalizarEmail(String email) {
+        String valor = normalizarEspacios(email);
 
-        if (nombre.isBlank()) {
-            return "Usuario";
+        if (valor.length() < 5
+                || valor.length() > 50
+                || !valor.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+            throw new RuntimeException(
+                    "El correo de la cuenta debe tener un formato válido y entre 5 y 50 caracteres para Culqi."
+            );
         }
 
-        return nombre.length() > 40 ? nombre.substring(0, 40) : nombre;
+        return valor;
+    }
+
+    private String validarYNormalizarNombre(String valor, String nombreCampo) {
+        String normalizado = normalizarEspacios(valor);
+
+        if (!normalizado.matches("^[\\p{L} ]{2,49}$")) {
+            throw new RuntimeException(
+                    "Los " + nombreCampo + " deben tener entre 2 y 49 caracteres y contener solamente letras y espacios."
+            );
+        }
+
+        return normalizado;
+    }
+
+    private String validarYNormalizarLongitud(
+            String valor,
+            int minimo,
+            int maximo,
+            String nombreCampo
+    ) {
+        String normalizado = normalizarEspacios(valor);
+
+        if (normalizado.length() < minimo || normalizado.length() > maximo) {
+            throw new RuntimeException(
+                    nombreCampo + " debe tener entre " + minimo + " y " + maximo + " caracteres."
+            );
+        }
+
+        return normalizado;
+    }
+
+    private String validarYNormalizarCodigoPais(String countryCode) {
+        String normalizado = normalizarEspacios(countryCode).toUpperCase(Locale.ROOT);
+
+        if (!"PE".equals(normalizado)) {
+            throw new RuntimeException(
+                    "El código de país debe ser PE para pagos realizados desde PeruTalent."
+            );
+        }
+
+        return normalizado;
+    }
+
+    private String validarYNormalizarTelefono(String phoneNumber) {
+        String normalizado = phoneNumber == null
+                ? ""
+                : phoneNumber.replaceAll("\\D", "");
+
+        if (!normalizado.matches("^\\d{5,15}$")) {
+            throw new RuntimeException(
+                    "El teléfono debe contener entre 5 y 15 dígitos."
+            );
+        }
+
+        return normalizado;
+    }
+
+    private String normalizarEspacios(String valor) {
+        return valor == null
+                ? ""
+                : valor.trim().replaceAll("\\s+", " ");
     }
 
     private String extraerMensajeCulqi(Map<String, Object> errorMap) {

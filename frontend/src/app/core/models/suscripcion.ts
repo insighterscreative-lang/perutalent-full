@@ -52,7 +52,13 @@ export interface CulqiConfig {
   enabled: boolean;
 }
 
-export interface PagoPremiumRequest {
+export interface DatosClientePago {
+  address: string;
+  addressCity: string;
+  aceptaTerminos: boolean;
+}
+
+export interface PagoPremiumRequest extends DatosClientePago {
   idPlan: number;
   tokenId: string;
 }

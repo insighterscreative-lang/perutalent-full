@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, NgZone, OnInit } from '@angular/core';
+import { FormsModule, NgForm } from '@angular/forms';
 import { Router } from '@angular/router';
 
-import { MiSuscripcion, PlanSuscripcion, UsoPlanUsuario } from 'src/app/core/models/suscripcion';
+import { DatosClientePago, MiSuscripcion, PlanSuscripcion, UsoPlanUsuario } from 'src/app/core/models/suscripcion';
 import { AuthService } from 'src/app/core/services/auth';
 import { SuscripcionService } from 'src/app/core/services/suscripcion';
 import { TopbarComponent } from 'src/app/shared/components/topbar/topbar';
@@ -16,7 +17,7 @@ declare global {
 @Component({
   selector: 'app-suscripciones',
   standalone: true,
-  imports: [CommonModule, TopbarComponent],
+  imports: [CommonModule, FormsModule, TopbarComponent],
   templateUrl: './suscripciones.html',
   styleUrl: './suscripciones.scss'
 })
@@ -39,6 +40,11 @@ export class SuscripcionesComponent implements OnInit {
   culqiTestMode = false;
   culqiEnabled = false;
   planPendientePago?: PlanSuscripcion;
+
+  mostrarModalDatosPago = false;
+  planFormularioPago?: PlanSuscripcion;
+  mensajeErrorFormulario = '';
+  datosClientePago: DatosClientePago = this.crearDatosClienteVacios();
 
   private culqiCheckout?: any;
 
@@ -144,7 +150,7 @@ export class SuscripcionesComponent implements OnInit {
     this.mensajeExito = '';
 
     if (this.esPremium(plan)) {
-      this.iniciarPagoPremium(plan);
+      this.abrirFormularioPago(plan);
       return;
     }
 
@@ -214,6 +220,91 @@ export class SuscripcionesComponent implements OnInit {
     });
   }
 
+  abrirFormularioPago(plan: PlanSuscripcion): void {
+    if (!this.culqiEnabled) {
+      this.mensajeError = 'Los pagos con Culqi todavía no están habilitados.';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.planFormularioPago = plan;
+    this.mensajeErrorFormulario = '';
+    this.datosClientePago = this.crearDatosClienteVacios();
+    this.mostrarModalDatosPago = true;
+    this.cdr.detectChanges();
+  }
+
+  cerrarFormularioPago(): void {
+    if (this.pagandoPremium) {
+      return;
+    }
+
+    this.mostrarModalDatosPago = false;
+    this.planFormularioPago = undefined;
+    this.mensajeErrorFormulario = '';
+    this.cdr.detectChanges();
+  }
+
+  confirmarDatosPago(formulario: NgForm): void {
+    formulario.control.markAllAsTouched();
+    this.mensajeErrorFormulario = '';
+
+    if (!this.planFormularioPago) {
+      this.mensajeErrorFormulario = 'No se pudo identificar el plan Premium seleccionado.';
+      return;
+    }
+
+    const datosNormalizados: DatosClientePago = {
+      address: this.normalizarEspacios(this.datosClientePago.address),
+      addressCity: this.normalizarEspacios(this.datosClientePago.addressCity),
+      aceptaTerminos: !!this.datosClientePago.aceptaTerminos
+    };
+
+    const error = this.validarDatosClientePago(datosNormalizados);
+    if (error) {
+      this.mensajeErrorFormulario = error;
+      this.datosClientePago = datosNormalizados;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const plan = this.planFormularioPago;
+    this.datosClientePago = datosNormalizados;
+    this.mostrarModalDatosPago = false;
+    this.planFormularioPago = undefined;
+    this.cdr.detectChanges();
+
+    void this.iniciarPagoPremium(plan);
+  }
+
+  private validarDatosClientePago(datos: DatosClientePago): string {
+    if (datos.address.length < 5 || datos.address.length > 100) {
+      return 'La dirección debe tener entre 5 y 100 caracteres.';
+    }
+
+    if (datos.addressCity.length < 2 || datos.addressCity.length > 30) {
+      return 'La ciudad debe tener entre 2 y 30 caracteres.';
+    }
+
+    if (!datos.aceptaTerminos) {
+      return 'Debes aceptar el cobro y la renovación automática mensual para continuar.';
+    }
+
+    return '';
+  }
+
+  private crearDatosClienteVacios(): DatosClientePago {
+    return {
+      address: '',
+      addressCity: 'Lima',
+      aceptaTerminos: false
+    };
+  }
+
+  private normalizarEspacios(valor: string): string {
+    return (valor || '').trim().replace(/\s+/g, ' ');
+  }
+
   async iniciarPagoPremium(plan: PlanSuscripcion): Promise<void> {
     if (!this.culqiEnabled) {
       this.mensajeError = 'Los pagos con Culqi todavía no están habilitados.';
@@ -231,17 +322,6 @@ export class SuscripcionesComponent implements OnInit {
       this.mensajeError = 'El plan Premium no tiene un precio válido.';
       this.cdr.detectChanges();
       return;
-    }
-
-    if (!this.culqiTestMode) {
-      const monto = this.obtenerPrecio(plan);
-      const confirmado = window.confirm(
-        `Se realizará un cobro real de ${monto} y se activará la renovación mensual automática. ¿Deseas continuar?`
-      );
-
-      if (!confirmado) {
-        return;
-      }
     }
 
     this.planPendientePago = plan;
@@ -286,6 +366,7 @@ export class SuscripcionesComponent implements OnInit {
         hiddenBannerContent: false,
         hiddenBanner: false,
         hiddenToolBarAmount: false,
+        hiddenEmail: false,
         menuType: 'sidebar',
         buttonCardPayText: 'Suscribirme',
         defaultStyle: {
@@ -353,7 +434,10 @@ export class SuscripcionesComponent implements OnInit {
 
     this.suscripcionService.pagarPremium({
       idPlan: plan.id,
-      tokenId
+      tokenId,
+      address: this.datosClientePago.address,
+      addressCity: this.datosClientePago.addressCity,
+      aceptaTerminos: this.datosClientePago.aceptaTerminos
     }).subscribe({
       next: (response) => {
         this.mensajeExito = response.mensaje || 'Suscripción Premium creada correctamente.';
