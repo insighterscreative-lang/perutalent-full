@@ -256,8 +256,7 @@ export class SuscripcionesComponent implements OnInit {
       const settings = {
         title: 'PeruTalent Premium',
         currency: plan.moneda || 'PEN',
-        amount: plan.precioCentimos,
-        description: 'Suscripción Premium mensual con renovación automática'
+        amount: plan.precioCentimos
       };
 
       const paymentMethods = {

@@ -2,21 +2,21 @@
 backend/target/
 
 # Spring IDE
-backend/.apt_generated
+backend/.apt_generated/
 backend/.classpath
 backend/.factorypath
 backend/.project
-backend/.settings
+backend/.settings/
 backend/.springBeans
-backend/.sts4-cache
+backend/.sts4-cache/
 
-# IntelliJ
+# IntelliJ IDEA
 .idea/
 *.iws
 *.iml
 *.ipr
 
-# VS Code
+# Visual Studio Code
 .vscode/
 
 # Archivos subidos localmente
@@ -31,11 +31,19 @@ frontend/.angular/
 # Variables de entorno locales
 .env
 .env.local
+.env.*
 *.env
 application-local.properties
 
-# OS
-.DS_Store
-Thumbs.db
+# Permitir archivos de ejemplo sin credenciales
+!.env.example
+
+# Logs
+*.log
+
 # Resultados locales de la suite automatizada
 resultados-pruebas/
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
