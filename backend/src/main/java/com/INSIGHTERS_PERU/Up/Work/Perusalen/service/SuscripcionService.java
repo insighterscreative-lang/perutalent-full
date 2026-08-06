@@ -203,7 +203,19 @@ public class SuscripcionService {
             throw new RuntimeException("No se encontró la suscripción local con pago fallido.");
         }
 
-        suscripcion.setEstadoSuscripcion(ESTADO_PAGO_FALLIDO);
+        // Culqi puede volver a intentar un cobro fallido. Mientras el periodo ya pagado
+        // siga vigente, el usuario conserva Premium; al vencer, la normalización habitual
+        // cambiará la suscripción a VENCIDA y dejará de otorgar beneficios.
+        LocalDate hoy = FechaPeru.hoy();
+        boolean periodoVencido = suscripcion.getFechaFin() != null
+                && suscripcion.getFechaFin().isBefore(hoy);
+
+        if (periodoVencido) {
+            suscripcion.setEstadoSuscripcion(ESTADO_PAGO_FALLIDO);
+        } else {
+            suscripcion.setEstadoSuscripcion(ESTADO_ACTIVA);
+        }
+
         suscripcion.setFechaActualizacion(LocalDateTime.now());
         suscripcion.setMotivoCancelacion(motivo);
 

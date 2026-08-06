@@ -49,6 +49,7 @@ export interface UsoPlanUsuario {
 export interface CulqiConfig {
   publicKey: string;
   testMode: boolean;
+  enabled: boolean;
 }
 
 export interface PagoPremiumRequest {

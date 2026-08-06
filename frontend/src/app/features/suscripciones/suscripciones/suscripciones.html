@@ -13,8 +13,16 @@
           El plan Premium se renueva automáticamente cada mes mientras no canceles la suscripción.
         </p>
 
-        <p class="test-note" *ngIf="autenticado && culqiTestMode">
+        <p class="test-note" *ngIf="autenticado && culqiEnabled && culqiTestMode">
           Modo prueba Culqi activo. Los pagos realizados aquí no cobran dinero real.
+        </p>
+
+        <p class="test-note live" *ngIf="autenticado && culqiEnabled && !culqiTestMode">
+          Culqi está en producción. Al confirmar Premium se realizará un cobro real y se activará la renovación mensual automática.
+        </p>
+
+        <p class="test-note" *ngIf="autenticado && !culqiEnabled">
+          El pago Premium todavía no está habilitado.
         </p>
       </div>
 
@@ -149,7 +157,7 @@
             class="btn plan-btn"
             [class.btn-primary]="!autenticado || !esPlanActual(plan)"
             [class.btn-disabled]="autenticado && esPlanActual(plan)"
-            [disabled]="autenticado && (esPlanActual(plan) || cambiandoPlan || pagandoPremium || cancelandoSuscripcion)"
+            [disabled]="autenticado && (esPlanActual(plan) || cambiandoPlan || pagandoPremium || cancelandoSuscripcion || (esPremium(plan) && !culqiEnabled))"
             (click)="seleccionarPlan(plan)">
             {{ obtenerTextoBoton(plan) }}
           </button>

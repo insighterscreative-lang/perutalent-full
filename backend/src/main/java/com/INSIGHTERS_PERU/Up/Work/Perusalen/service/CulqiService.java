@@ -2,6 +2,8 @@ package com.INSIGHTERS_PERU.Up.Work.Perusalen.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -9,6 +11,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
@@ -17,60 +20,50 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class CulqiService {
 
+    private static final Logger log = LoggerFactory.getLogger(CulqiService.class);
     private static final ZoneId ZONA_PERU = ZoneId.of("America/Lima");
 
-    @Value("${CULQI_SECRET_KEY:}")
+    private static final Set<String> CAMPOS_SENSIBLES = Set.of(
+            "token_id",
+            "source_id",
+            "card_number",
+            "cardnumber",
+            "cvv",
+            "cvv2",
+            "email",
+            "phone_number",
+            "first_name",
+            "last_name",
+            "address",
+            "address_city"
+    );
+
+    @Value("${culqi.secret-key:}")
     private String culqiSecretKey;
 
-    @Value("${CULQI_API_URL:https://api.culqi.com/v2}")
+    @Value("${culqi.api-url:https://api.culqi.com/v2}")
     private String culqiApiUrl;
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
     public CulqiService(ObjectMapper objectMapper) {
-        this.restTemplate = new RestTemplate();
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(15_000);
+        requestFactory.setReadTimeout(35_000);
+
+        this.restTemplate = new RestTemplate(requestFactory);
         this.objectMapper = objectMapper;
-    }
-
-    public Map<String, Object> crearCargo(
-            Integer montoCentimos,
-            String moneda,
-            String email,
-            String tokenId,
-            String descripcion
-    ) {
-        validarConfiguracionSecreta();
-        validarToken(tokenId);
-
-        if (montoCentimos == null || montoCentimos <= 0) {
-            throw new RuntimeException("El monto del cargo no es válido.");
-        }
-
-        if (email == null || email.isBlank()) {
-            throw new RuntimeException("El correo del usuario es obligatorio para Culqi.");
-        }
-
-        Map<String, Object> body = new HashMap<>();
-        body.put("amount", montoCentimos);
-        body.put("currency_code", moneda);
-
-        String emailCargo = culqiSecretKey.startsWith("sk_test")
-                ? "review@culqi.com"
-                : email;
-
-        body.put("email", emailCargo);
-        body.put("source_id", tokenId);
-        body.put("description", descripcion);
-
-        return post("/charges", body, "No se pudo procesar el pago con Culqi.");
     }
 
     public Map<String, Object> crearCliente(Long idUsuario, String email) {
@@ -94,22 +87,35 @@ public class CulqiService {
         body.put("phone_number", "999999999");
         body.put("metadata", metadata);
 
-        return post("/customers", body, "No se pudo crear el cliente en Culqi.");
+        Map<String, Object> respuesta = post(
+                "/customers",
+                body,
+                "No se pudo crear el cliente en Culqi."
+        );
+
+        String customerId = obtenerCustomerId(respuesta);
+        validarIdAmbiente(customerId, "cus_", "cliente");
+        return respuesta;
     }
 
     public Map<String, Object> crearTarjeta(String customerId, String tokenId) {
         validarConfiguracionSecreta();
         validarToken(tokenId);
-
-        if (customerId == null || customerId.isBlank()) {
-            throw new RuntimeException("No se recibió el ID del cliente de Culqi.");
-        }
+        validarIdAmbiente(customerId, "cus_", "cliente");
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("customer_id", customerId);
         body.put("token_id", tokenId);
 
-        return post("/cards", body, "No se pudo crear la tarjeta en Culqi.");
+        Map<String, Object> respuesta = post(
+                "/cards",
+                body,
+                "No se pudo crear la tarjeta en Culqi."
+        );
+
+        String cardId = obtenerCardId(respuesta);
+        validarIdAmbiente(cardId, "crd_", "tarjeta");
+        return respuesta;
     }
 
     public Map<String, Object> crearSuscripcion(
@@ -119,14 +125,8 @@ public class CulqiService {
             Long idPlanLocal
     ) {
         validarConfiguracionSecreta();
-
-        if (cardId == null || cardId.isBlank()) {
-            throw new RuntimeException("No se recibió el ID de tarjeta de Culqi.");
-        }
-
-        if (planId == null || planId.isBlank()) {
-            throw new RuntimeException("No se configuró el ID del plan recurrente de Culqi.");
-        }
+        validarIdAmbiente(cardId, "crd_", "tarjeta");
+        validarPlanId(planId);
 
         Map<String, Object> metadata = new LinkedHashMap<>();
         metadata.put("id_usuario", idUsuario);
@@ -139,15 +139,16 @@ public class CulqiService {
         body.put("tyc", true);
         body.put("metadata", metadata);
 
-        return post("/recurrent/subscriptions/create", body, "No se pudo crear la suscripción recurrente en Culqi.");
+        return post(
+                "/recurrent/subscriptions/create",
+                body,
+                "No se pudo crear la suscripción recurrente en Culqi."
+        );
     }
 
     public Map<String, Object> cancelarSuscripcion(String culqiSubscriptionId) {
         validarConfiguracionSecreta();
-
-        if (culqiSubscriptionId == null || culqiSubscriptionId.isBlank()) {
-            throw new RuntimeException("No se recibió el ID de suscripción de Culqi.");
-        }
+        validarIdAmbiente(culqiSubscriptionId, "sxn_", "suscripción");
 
         return delete(
                 "/recurrent/subscriptions/" + culqiSubscriptionId,
@@ -155,55 +156,69 @@ public class CulqiService {
         );
     }
 
-    public boolean cargoAprobado(Map<String, Object> respuesta) {
-        if (respuesta == null) {
+    public void validarAmbientePlanYToken(String planId, String tokenId) {
+        validarConfiguracionSecreta();
+        validarPlanId(planId);
+        validarToken(tokenId);
+    }
+
+    public boolean suscripcionActivaYCorrespondeAlPlan(
+            Map<String, Object> respuesta,
+            String planIdEsperado
+    ) {
+        if (respuesta == null || respuesta.isEmpty()) {
             return false;
         }
 
-        Object object = respuesta.get("object");
-        Object id = respuesta.get("id");
-
-        boolean esCargo = object != null
-                && object.toString().equalsIgnoreCase("charge");
-
-        boolean tieneId = id != null
-                && id.toString().startsWith("chr_");
-
-        boolean aprobadoPorOutcome = false;
-
-        Object outcomeObject = respuesta.get("outcome");
-        if (outcomeObject instanceof Map<?, ?> outcome) {
-            Object type = outcome.get("type");
-            Object code = outcome.get("code");
-
-            boolean ventaExitosa = type != null
-                    && type.toString().equalsIgnoreCase("venta_exitosa");
-
-            boolean autorizado = code != null
-                    && code.toString().equalsIgnoreCase("AUT0000");
-
-            aprobadoPorOutcome = ventaExitosa || autorizado;
+        String subscriptionId = obtenerSubscriptionId(respuesta);
+        if (subscriptionId == null || subscriptionId.isBlank()) {
+            return false;
         }
 
-        Object responseCode = respuesta.get("response_code");
-        Object state = respuesta.get("state");
+        try {
+            validarIdAmbiente(subscriptionId, "sxn_", "suscripción");
+        } catch (RuntimeException ex) {
+            return false;
+        }
 
-        boolean aprobadoPorResponseCode = responseCode != null
-                && responseCode.toString().equalsIgnoreCase("venta_exitosa");
+        String planIdRespuesta = obtenerPlanId(respuesta);
+        if (planIdRespuesta == null || !planIdRespuesta.equals(planIdEsperado)) {
+            return false;
+        }
 
-        boolean aprobadoPorState = state != null
-                && state.toString().equalsIgnoreCase("Exitosa");
+        Object status = buscarObjetoPorClave(respuesta, "status");
+        if (status instanceof Number numero) {
+            return numero.intValue() == 1 || numero.intValue() == 3;
+        }
 
-        return esCargo && tieneId && (
-                aprobadoPorOutcome ||
-                aprobadoPorResponseCode ||
-                aprobadoPorState
-        );
+        if (status != null) {
+            String estado = status.toString().trim().toLowerCase(Locale.ROOT);
+            return estado.equals("active")
+                    || estado.equals("activa")
+                    || estado.equals("1");
+        }
+
+        Object state = buscarObjetoPorClave(respuesta, "state");
+        if (state != null) {
+            String estado = state.toString().trim().toLowerCase(Locale.ROOT);
+            return estado.equals("active") || estado.equals("activa");
+        }
+
+        return false;
     }
 
     public String obtenerId(Map<String, Object> respuesta) {
         Object id = respuesta != null ? respuesta.get("id") : null;
         return id != null ? id.toString() : null;
+    }
+
+    public String obtenerTextoRaiz(Map<String, Object> map, String clave) {
+        if (map == null || clave == null) {
+            return null;
+        }
+
+        Object valor = map.get(clave);
+        return valor == null ? null : valor.toString();
     }
 
     public String obtenerChargeId(Map<String, Object> respuesta) {
@@ -246,6 +261,34 @@ public class CulqiService {
         return id != null && id.startsWith("sxn_") ? id : buscarIdPorPrefijo(respuesta, "sxn_");
     }
 
+    public String obtenerPlanId(Map<String, Object> respuesta) {
+        String directo = buscarTextoPorClave(respuesta, "plan_id");
+        if (directo != null && directo.startsWith("pln_")) {
+            return directo;
+        }
+
+        return buscarIdPorPrefijo(respuesta, "pln_");
+    }
+
+    public Long obtenerMetadataLong(Map<String, Object> respuesta, String clave) {
+        if (respuesta == null || clave == null) {
+            return null;
+        }
+
+        Object valor = buscarValorEnMetadata(respuesta, clave);
+        if (valor == null) {
+            return null;
+        }
+
+        try {
+            return valor instanceof Number numero
+                    ? numero.longValue()
+                    : Long.parseLong(valor.toString());
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
     public Integer obtenerStatusSuscripcion(Map<String, Object> respuesta) {
         Object status = buscarObjetoPorClave(respuesta, "status");
         if (status instanceof Number numero) {
@@ -275,17 +318,31 @@ public class CulqiService {
 
     public String convertirRespuestaAJson(Map<String, Object> respuesta) {
         try {
-            return objectMapper.writeValueAsString(respuesta);
+            return objectMapper.writeValueAsString(sanitizarValor(respuesta));
         } catch (JsonProcessingException e) {
             return "{}";
         }
     }
 
+    @SuppressWarnings("unchecked")
     public Map<String, Object> convertirJsonAMap(String json) {
         try {
             return objectMapper.readValue(json, Map.class);
         } catch (Exception e) {
             return Map.of("raw_error", json == null ? "" : json);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> convertirJsonAMapEstricto(String json) {
+        if (json == null || json.isBlank()) {
+            throw new IllegalArgumentException("El webhook de Culqi llegó sin contenido.");
+        }
+
+        try {
+            return objectMapper.readValue(json, Map.class);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("El webhook de Culqi no contiene un JSON válido.");
         }
     }
 
@@ -332,8 +389,8 @@ public class CulqiService {
         }
 
         for (Object value : map.values()) {
-            if (value != null && value.toString().startsWith(prefijo)) {
-                return value.toString();
+            if (value instanceof String texto && texto.startsWith(prefijo)) {
+                return texto;
             }
 
             if (value instanceof Map<?, ?> nested) {
@@ -350,8 +407,8 @@ public class CulqiService {
                         if (encontrado != null) {
                             return encontrado;
                         }
-                    } else if (item != null && item.toString().startsWith(prefijo)) {
-                        return item.toString();
+                    } else if (item instanceof String texto && texto.startsWith(prefijo)) {
+                        return texto;
                     }
                 }
             }
@@ -361,38 +418,33 @@ public class CulqiService {
     }
 
     private Map<String, Object> post(String path, Map<String, Object> body, String mensajeErrorGeneral) {
-        String url = culqiApiUrl + path;
+        String url = normalizarApiUrl() + path;
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, crearHeaders());
 
         try {
-            System.out.println("===== CULQI REQUEST POST " + path + " =====");
-            System.out.println(convertirRespuestaAJson(body));
-
+            log.info("Enviando solicitud POST a Culqi: {}", path);
             ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
-
-            System.out.println("===== CULQI RESPONSE OK " + path + " =====");
-            System.out.println(convertirRespuestaAJson(response.getBody()));
-
-            return response.getBody();
-
+            Map<String, Object> respuesta = convertirMapaRespuesta(response.getBody());
+            log.info("Culqi respondió correctamente en {} con objeto {} e id {}",
+                    path,
+                    respuesta.get("object"),
+                    respuesta.get("id"));
+            return respuesta;
         } catch (HttpStatusCodeException e) {
-            manejarErrorHttpCulqi(e);
+            manejarErrorHttpCulqi(path, e);
             return Map.of();
         } catch (Exception e) {
-            System.out.println("===== ERROR GENERAL CULQI " + path + " =====");
-            e.printStackTrace();
-
-            throw new RuntimeException(mensajeErrorGeneral + " " + e.getMessage());
+            log.error("Error de comunicación con Culqi en {}: {}", path, e.getMessage());
+            throw new RuntimeException(mensajeErrorGeneral + " Inténtalo nuevamente.");
         }
     }
 
     private Map<String, Object> delete(String path, String mensajeErrorGeneral) {
-        String url = culqiApiUrl + path;
+        String url = normalizarApiUrl() + path;
         HttpEntity<Void> request = new HttpEntity<>(crearHeaders());
 
         try {
-            System.out.println("===== CULQI REQUEST DELETE " + path + " =====");
-
+            log.info("Enviando solicitud DELETE a Culqi: {}", path);
             ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.DELETE, request, Map.class);
 
             HttpStatusCode statusCode = response.getStatusCode();
@@ -400,31 +452,26 @@ public class CulqiService {
                 throw new RuntimeException("Culqi respondió con estado " + statusCode.value());
             }
 
-            System.out.println("===== CULQI RESPONSE OK " + path + " =====");
-            System.out.println(convertirRespuestaAJson(response.getBody()));
-
-            return response.getBody();
-
+            Map<String, Object> respuesta = convertirMapaRespuesta(response.getBody());
+            log.info("Culqi confirmó la cancelación de la suscripción solicitada.");
+            return respuesta;
         } catch (HttpStatusCodeException e) {
-            manejarErrorHttpCulqi(e);
+            manejarErrorHttpCulqi(path, e);
             return Map.of();
         } catch (Exception e) {
-            System.out.println("===== ERROR GENERAL CULQI " + path + " =====");
-            e.printStackTrace();
-
-            throw new RuntimeException(mensajeErrorGeneral + " " + e.getMessage());
+            log.error("Error de comunicación con Culqi en {}: {}", path, e.getMessage());
+            throw new RuntimeException(mensajeErrorGeneral + " Inténtalo nuevamente.");
         }
     }
 
-    private void manejarErrorHttpCulqi(HttpStatusCodeException e) {
-        String bodyError = e.getResponseBodyAsString();
-
-        System.out.println("===== CULQI RESPONSE ERROR =====");
-        System.out.println("HTTP STATUS: " + e.getStatusCode());
-        System.out.println(bodyError);
-
-        Map<String, Object> errorMap = convertirJsonAMap(bodyError);
+    private void manejarErrorHttpCulqi(String path, HttpStatusCodeException e) {
+        Map<String, Object> errorMap = convertirJsonAMap(e.getResponseBodyAsString());
         String mensaje = extraerMensajeCulqi(errorMap);
+
+        log.warn("Culqi rechazó {} con HTTP {}: {}",
+                path,
+                e.getStatusCode().value(),
+                mensaje == null ? "sin detalle público" : mensaje);
 
         throw new RuntimeException(mensaje != null ? mensaje : "Culqi rechazó la operación.");
     }
@@ -432,13 +479,18 @@ public class CulqiService {
     private HttpHeaders crearHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(culqiSecretKey);
+        headers.setBearerAuth(culqiSecretKey.trim());
         return headers;
     }
 
     private void validarConfiguracionSecreta() {
         if (culqiSecretKey == null || culqiSecretKey.isBlank()) {
-            throw new RuntimeException("No se configuró CULQI_SECRET_KEY en el backend.");
+            throw new RuntimeException("No se configuró la llave privada de Culqi en el backend.");
+        }
+
+        String key = culqiSecretKey.trim();
+        if (!key.startsWith("sk_test_") && !key.startsWith("sk_live_")) {
+            throw new RuntimeException("La llave privada de Culqi no tiene un formato válido.");
         }
     }
 
@@ -446,13 +498,91 @@ public class CulqiService {
         if (tokenId == null || tokenId.isBlank()) {
             throw new RuntimeException("El token de Culqi es obligatorio.");
         }
+
+        String token = tokenId.trim();
+        if (!token.startsWith("tkn_test_") && !token.startsWith("tkn_live_")) {
+            throw new RuntimeException("El token de Culqi no tiene un formato válido.");
+        }
+
+        validarMismoAmbiente(token, "token");
+    }
+
+    private void validarPlanId(String planId) {
+        if (planId == null || planId.isBlank()) {
+            throw new RuntimeException("No se configuró el ID del plan recurrente de Culqi.");
+        }
+
+        String plan = planId.trim();
+        if (!plan.startsWith("pln_test_") && !plan.startsWith("pln_live_")) {
+            throw new RuntimeException("El ID del plan de Culqi no tiene un formato válido.");
+        }
+
+        validarMismoAmbiente(plan, "plan");
+    }
+
+    private void validarIdAmbiente(String id, String prefijoBase, String tipo) {
+        if (id == null || id.isBlank()) {
+            throw new RuntimeException("Culqi no devolvió el ID de " + tipo + ".");
+        }
+
+        if (!id.startsWith(prefijoBase + "test_") && !id.startsWith(prefijoBase + "live_")) {
+            throw new RuntimeException("El ID de " + tipo + " devuelto por Culqi no tiene un formato válido.");
+        }
+
+        validarMismoAmbiente(id, tipo);
+    }
+
+    private void validarMismoAmbiente(String id, String tipo) {
+        boolean llaveLive = culqiSecretKey != null && culqiSecretKey.trim().startsWith("sk_live_");
+        boolean idLive = id.contains("_live_");
+        boolean idTest = id.contains("_test_");
+
+        if ((llaveLive && !idLive) || (!llaveLive && !idTest)) {
+            throw new RuntimeException(
+                    "La llave privada y el " + tipo + " de Culqi pertenecen a ambientes diferentes."
+            );
+        }
+    }
+
+
+    private Object buscarValorEnMetadata(Object nodo, String clave) {
+        if (nodo instanceof Map<?, ?> map) {
+            Object metadataObject = map.get("metadata");
+            if (metadataObject instanceof Map<?, ?> metadata && metadata.containsKey(clave)) {
+                return metadata.get(clave);
+            }
+
+            for (Object value : map.values()) {
+                Object encontrado = buscarValorEnMetadata(value, clave);
+                if (encontrado != null) {
+                    return encontrado;
+                }
+            }
+        }
+
+        if (nodo instanceof Iterable<?> iterable) {
+            for (Object item : iterable) {
+                Object encontrado = buscarValorEnMetadata(item, clave);
+                if (encontrado != null) {
+                    return encontrado;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private String normalizarApiUrl() {
+        String apiUrl = culqiApiUrl == null || culqiApiUrl.isBlank()
+                ? "https://api.culqi.com/v2"
+                : culqiApiUrl.trim();
+
+        return apiUrl.endsWith("/")
+                ? apiUrl.substring(0, apiUrl.length() - 1)
+                : apiUrl;
     }
 
     private String obtenerNombreDesdeEmail(String email) {
-        if (email == null || email.isBlank()) {
-            return "Usuario";
-        }
-
         String nombre = email.split("@")[0]
                 .replaceAll("[^a-zA-Z0-9]", " ")
                 .trim();
@@ -469,24 +599,11 @@ public class CulqiService {
             return null;
         }
 
-        Object userMessage = errorMap.get("user_message");
-        if (userMessage != null) {
-            return userMessage.toString();
-        }
-
-        Object merchantMessage = errorMap.get("merchant_message");
-        if (merchantMessage != null) {
-            return merchantMessage.toString();
-        }
-
-        Object message = errorMap.get("message");
-        if (message != null) {
-            return message.toString();
-        }
-
-        Object rawError = errorMap.get("raw_error");
-        if (rawError != null) {
-            return rawError.toString();
+        for (String key : List.of("user_message", "merchant_message", "message")) {
+            Object value = errorMap.get(key);
+            if (value != null && !value.toString().isBlank()) {
+                return value.toString();
+            }
         }
 
         return null;
@@ -521,13 +638,36 @@ public class CulqiService {
         }
     }
 
-    private Map<String, Object> convertirMapa(Map<?, ?> map) {
-        Map<String, Object> convertido = new LinkedHashMap<>();
-        for (Map.Entry<?, ?> entry : map.entrySet()) {
-            if (entry.getKey() != null) {
-                convertido.put(entry.getKey().toString(), entry.getValue());
-            }
+    private Object sanitizarValor(Object valor) {
+        if (valor instanceof Map<?, ?> map) {
+            Map<String, Object> sanitizado = new LinkedHashMap<>();
+            map.forEach((key, value) -> {
+                String nombre = String.valueOf(key);
+                if (CAMPOS_SENSIBLES.contains(nombre.toLowerCase(Locale.ROOT))) {
+                    sanitizado.put(nombre, "***");
+                } else {
+                    sanitizado.put(nombre, sanitizarValor(value));
+                }
+            });
+            return sanitizado;
         }
+
+        if (valor instanceof Iterable<?> iterable) {
+            List<Object> sanitizado = new ArrayList<>();
+            iterable.forEach(item -> sanitizado.add(sanitizarValor(item)));
+            return sanitizado;
+        }
+
+        return valor;
+    }
+
+    private Map<String, Object> convertirMapa(Map<?, ?> original) {
+        Map<String, Object> convertido = new LinkedHashMap<>();
+        original.forEach((key, value) -> convertido.put(String.valueOf(key), value));
         return convertido;
+    }
+
+    private Map<String, Object> convertirMapaRespuesta(Map<?, ?> original) {
+        return original == null ? new LinkedHashMap<>() : convertirMapa(original);
     }
 }

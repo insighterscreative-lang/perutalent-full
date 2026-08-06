@@ -9,8 +9,7 @@ import { TopbarComponent } from 'src/app/shared/components/topbar/topbar';
 
 declare global {
   interface Window {
-    Culqi: any;
-    culqi: () => void;
+    CulqiCheckout: any;
   }
 }
 
@@ -38,7 +37,10 @@ export class SuscripcionesComponent implements OnInit {
 
   culqiPublicKey = '';
   culqiTestMode = false;
+  culqiEnabled = false;
   planPendientePago?: PlanSuscripcion;
+
+  private culqiCheckout?: any;
 
   constructor(
     private suscripcionService: SuscripcionService,
@@ -84,12 +86,14 @@ export class SuscripcionesComponent implements OnInit {
       next: (config) => {
         this.culqiPublicKey = config.publicKey;
         this.culqiTestMode = config.testMode;
+        this.culqiEnabled = config.enabled;
         this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('Error cargando configuración de Culqi:', error);
         this.culqiPublicKey = '';
         this.culqiTestMode = false;
+        this.culqiEnabled = false;
         this.cdr.detectChanges();
       }
     });
@@ -211,6 +215,12 @@ export class SuscripcionesComponent implements OnInit {
   }
 
   async iniciarPagoPremium(plan: PlanSuscripcion): Promise<void> {
+    if (!this.culqiEnabled) {
+      this.mensajeError = 'Los pagos con Culqi todavía no están habilitados.';
+      this.cdr.detectChanges();
+      return;
+    }
+
     if (!this.culqiPublicKey) {
       this.mensajeError = 'No se pudo cargar la configuración pública de Culqi.';
       this.cdr.detectChanges();
@@ -223,6 +233,17 @@ export class SuscripcionesComponent implements OnInit {
       return;
     }
 
+    if (!this.culqiTestMode) {
+      const monto = this.obtenerPrecio(plan);
+      const confirmado = window.confirm(
+        `Se realizará un cobro real de ${monto} y se activará la renovación mensual automática. ¿Deseas continuar?`
+      );
+
+      if (!confirmado) {
+        return;
+      }
+    }
+
     this.planPendientePago = plan;
     this.pagandoPremium = true;
     this.mensajeError = '';
@@ -232,63 +253,83 @@ export class SuscripcionesComponent implements OnInit {
     try {
       await this.cargarScriptCulqi();
 
-      window.Culqi.publicKey = this.culqiPublicKey;
-
-      window.Culqi.settings({
+      const settings = {
         title: 'PeruTalent Premium',
         currency: plan.moneda || 'PEN',
         amount: plan.precioCentimos,
         description: 'Suscripción Premium mensual con renovación automática'
-      });
+      };
 
-      window.Culqi.options({
+      const paymentMethods = {
+        tarjeta: true,
+        yape: false,
+        billetera: false,
+        bancaMovil: false,
+        agente: false,
+        cuotealo: false
+      };
+
+      const options = {
         lang: 'es',
         installments: false,
-        paymentMethods: {
-          tarjeta: true,
-          yape: false,
-          bancaMovil: false,
-          agente: false,
-          billetera: false,
-          cuotealo: false
-        },
-        style: {
-          buttonText: 'Suscribirme',
+        modal: true,
+        paymentMethods,
+        paymentMethodsSort: Object.keys(paymentMethods)
+      };
+
+      const client = {
+        email: localStorage.getItem('email') || ''
+      };
+
+      const appearance = {
+        theme: 'default',
+        hiddenCulqiLogo: false,
+        hiddenBannerContent: false,
+        hiddenBanner: false,
+        hiddenToolBarAmount: false,
+        menuType: 'sidebar',
+        buttonCardPayText: 'Suscribirme',
+        defaultStyle: {
           buttonBackground: '#22c55e',
           buttonTextColor: '#ffffff',
           priceColor: '#0f172a'
         }
+      };
+
+      this.culqiCheckout = new window.CulqiCheckout(this.culqiPublicKey, {
+        settings,
+        client,
+        options,
+        appearance
       });
 
-      window.culqi = () => {
+      this.culqiCheckout.culqi = () => {
         this.ngZone.run(() => {
-          if (window.Culqi.token) {
-            const tokenId = window.Culqi.token.id;
-
-            if (window.Culqi.close) {
-              window.Culqi.close();
-            }
-
+          if (this.culqiCheckout?.token?.id) {
+            const tokenId = this.culqiCheckout.token.id;
+            this.culqiCheckout.close();
             this.procesarPagoPremium(plan, tokenId);
             return;
           }
 
-          if (window.Culqi.error) {
-            console.error('Error Culqi:', window.Culqi.error);
+          const errorCulqi = this.culqiCheckout?.error;
+          this.mensajeError =
+            errorCulqi?.user_message ||
+            errorCulqi?.merchant_message ||
+            'No se pudo generar el token de pago.';
 
-            this.mensajeError =
-              window.Culqi.error?.user_message ||
-              window.Culqi.error?.merchant_message ||
-              'No se pudo generar el token de pago.';
-
-            this.pagandoPremium = false;
-            this.planPendientePago = undefined;
-            this.cdr.detectChanges();
-          }
+          this.pagandoPremium = false;
+          this.planPendientePago = undefined;
+          this.cdr.detectChanges();
         });
       };
 
-      window.Culqi.open();
+      this.culqiCheckout.open();
+
+      // El checkout ya quedó abierto. El bloqueo vuelve a activarse cuando se
+      // recibe el token y empieza la llamada real al backend.
+      this.pagandoPremium = false;
+      this.cdr.detectChanges();
     } catch (error) {
       console.error('Error cargando Culqi Checkout:', error);
       this.mensajeError = 'No se pudo abrir el checkout de Culqi.';
@@ -299,6 +340,14 @@ export class SuscripcionesComponent implements OnInit {
   }
 
   procesarPagoPremium(plan: PlanSuscripcion, tokenId: string): void {
+    if (!tokenId || !tokenId.startsWith('tkn_')) {
+      this.mensajeError = 'Culqi no devolvió un token de pago válido.';
+      this.planPendientePago = undefined;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.pagandoPremium = true;
     this.mensajeError = '';
     this.mensajeExito = 'Creando suscripción mensual con Culqi...';
     this.cdr.detectChanges();
@@ -317,9 +366,10 @@ export class SuscripcionesComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error creando suscripción Premium:', error);
-
-        this.mensajeError = this.obtenerMensajeError(error, 'No se pudo crear la suscripción con Culqi.');
-
+        this.mensajeError = this.obtenerMensajeError(
+          error,
+          'No se pudo crear la suscripción con Culqi.'
+        );
         this.mensajeExito = '';
         this.pagandoPremium = false;
         this.planPendientePago = undefined;
@@ -330,22 +380,22 @@ export class SuscripcionesComponent implements OnInit {
 
   cargarScriptCulqi(): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (window.Culqi) {
+      if (window.CulqiCheckout) {
         resolve();
         return;
       }
 
-      const scriptExistente = document.getElementById('culqi-checkout-script');
+      const scriptExistente = document.getElementById('culqi-checkout-custom-script');
 
       if (scriptExistente) {
-        scriptExistente.addEventListener('load', () => resolve());
-        scriptExistente.addEventListener('error', () => reject());
+        scriptExistente.addEventListener('load', () => resolve(), { once: true });
+        scriptExistente.addEventListener('error', () => reject(), { once: true });
         return;
       }
 
       const script = document.createElement('script');
-      script.id = 'culqi-checkout-script';
-      script.src = 'https://checkout.culqi.com/js/v4';
+      script.id = 'culqi-checkout-custom-script';
+      script.src = 'https://js.culqi.com/checkout-js';
       script.async = true;
 
       script.onload = () => resolve();
@@ -469,7 +519,7 @@ export class SuscripcionesComponent implements OnInit {
     }
 
     if (this.esPremium(plan)) {
-      return 'Suscribirme a Premium';
+      return this.culqiEnabled ? 'Suscribirme a Premium' : 'Pago próximamente';
     }
 
     return 'Elegir plan';
