@@ -78,19 +78,6 @@ h1 {
   margin-bottom: 0;
 }
 
-.test-note {
-  display: inline-flex;
-  width: fit-content;
-  margin: 14px 0 0;
-  padding: 10px 12px;
-  border-radius: 999px;
-  background: rgba(245, 158, 11, 0.12);
-  border: 1px solid rgba(245, 158, 11, 0.26);
-  color: #92400e;
-  font-size: 13px;
-  font-weight: 900;
-}
-
 .btn {
   padding: 12px 18px;
   border: none;
@@ -544,18 +531,13 @@ h1 {
 
 .payment-summary {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   margin-bottom: 22px;
   padding: 16px;
   border-radius: 18px;
   background: rgba(37, 99, 235, 0.07);
   border: 1px solid rgba(37, 99, 235, 0.16);
-}
-
-.payment-summary.live {
-  background: rgba(245, 158, 11, 0.10);
-  border-color: rgba(245, 158, 11, 0.28);
 }
 
 .payment-summary div {

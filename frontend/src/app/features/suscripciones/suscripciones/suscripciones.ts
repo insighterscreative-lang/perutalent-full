@@ -250,7 +250,7 @@ export class SuscripcionesComponent implements OnInit {
 
   abrirFormularioPago(plan: PlanSuscripcion): void {
     if (!this.culqiEnabled) {
-      this.mensajeError = 'Los pagos con Culqi todavía no están habilitados.';
+      this.mensajeError = 'El pago no está disponible en este momento. Intenta nuevamente más tarde.';
       this.cdr.detectChanges();
       return;
     }
@@ -335,13 +335,13 @@ export class SuscripcionesComponent implements OnInit {
 
   async iniciarPagoPremium(plan: PlanSuscripcion): Promise<void> {
     if (!this.culqiEnabled) {
-      this.mensajeError = 'Los pagos con Culqi todavía no están habilitados.';
+      this.mensajeError = 'El pago no está disponible en este momento. Intenta nuevamente más tarde.';
       this.cdr.detectChanges();
       return;
     }
 
     if (!this.culqiPublicKey) {
-      this.mensajeError = 'No se pudo cargar la configuración pública de Culqi.';
+      this.mensajeError = 'No se pudo preparar el formulario de pago. Intenta nuevamente.';
       this.cdr.detectChanges();
       return;
     }
@@ -420,11 +420,11 @@ export class SuscripcionesComponent implements OnInit {
             return;
           }
 
-          const errorCulqi = this.culqiCheckout?.error;
-          this.mensajeError =
-            errorCulqi?.user_message ||
-            errorCulqi?.merchant_message ||
-            'No se pudo generar el token de pago.';
+          const errorPago = this.culqiCheckout?.error;
+          this.mensajeError = this.obtenerMensajePagoSeguro(
+            errorPago?.user_message,
+            'No pudimos validar los datos de pago. Revísalos e inténtalo nuevamente.'
+          );
 
           this.pagandoPremium = false;
           this.planPendientePago = undefined;
@@ -440,7 +440,7 @@ export class SuscripcionesComponent implements OnInit {
       this.cdr.detectChanges();
     } catch (error) {
       console.error('Error cargando Culqi Checkout:', error);
-      this.mensajeError = 'No se pudo abrir el checkout de Culqi.';
+      this.mensajeError = 'No se pudo abrir el formulario de pago. Intenta nuevamente.';
       this.pagandoPremium = false;
       this.planPendientePago = undefined;
       this.cdr.detectChanges();
@@ -449,7 +449,7 @@ export class SuscripcionesComponent implements OnInit {
 
   procesarPagoPremium(plan: PlanSuscripcion, tokenId: string): void {
     if (!tokenId || !tokenId.startsWith('tkn_')) {
-      this.mensajeError = 'Culqi no devolvió un token de pago válido.';
+      this.mensajeError = 'No se pudo validar la información de pago. Intenta nuevamente.';
       this.planPendientePago = undefined;
       this.cdr.detectChanges();
       return;
@@ -457,7 +457,7 @@ export class SuscripcionesComponent implements OnInit {
 
     this.pagandoPremium = true;
     this.mensajeError = '';
-    this.mensajeExito = 'Creando suscripción mensual con Culqi...';
+    this.mensajeExito = 'Procesando tu suscripción...';
     this.cdr.detectChanges();
 
     this.suscripcionService.pagarPremium({
@@ -468,7 +468,10 @@ export class SuscripcionesComponent implements OnInit {
       aceptaTerminos: this.datosClientePago.aceptaTerminos
     }).subscribe({
       next: (response) => {
-        this.mensajeExito = response.mensaje || 'Suscripción Premium creada correctamente.';
+        this.mensajeExito = this.obtenerMensajePagoSeguro(
+          response.mensaje,
+          'Tu suscripción Premium se activó correctamente.'
+        );
         this.pagandoPremium = false;
         this.planPendientePago = undefined;
 
@@ -479,7 +482,7 @@ export class SuscripcionesComponent implements OnInit {
         console.error('Error creando suscripción Premium:', error);
         this.mensajeError = this.obtenerMensajeError(
           error,
-          'No se pudo crear la suscripción con Culqi.'
+          'No se pudo completar la suscripción. Verifica tus datos e inténtalo nuevamente.'
         );
         this.mensajeExito = '';
         this.pagandoPremium = false;
@@ -632,7 +635,7 @@ export class SuscripcionesComponent implements OnInit {
     }
 
     if (this.esPremium(plan)) {
-      return this.culqiEnabled ? 'Suscribirme a Premium' : 'Pago próximamente';
+      return this.culqiEnabled ? 'Suscribirme a Premium' : 'Pago no disponible';
     }
 
     return 'Elegir plan';
@@ -651,10 +654,23 @@ export class SuscripcionesComponent implements OnInit {
   }
 
   obtenerMensajeError(error: any, fallback: string): string {
-    return error?.error?.message ||
+    const mensaje = error?.error?.message ||
       error?.error?.mensaje ||
       error?.error?.error ||
-      fallback;
+      '';
+
+    return this.obtenerMensajePagoSeguro(mensaje, fallback);
+  }
+
+  private obtenerMensajePagoSeguro(mensaje: unknown, fallback: string): string {
+    if (typeof mensaje !== 'string' || !mensaje.trim()) {
+      return fallback;
+    }
+
+    const texto = mensaje.trim();
+    const contieneDetalleTecnico = /(culqi|webhook|token|customer|subscription|api|http|endpoint|merchant_message|user_message|sk_live|pk_live)/i.test(texto);
+
+    return contieneDetalleTecnico ? fallback : texto;
   }
 
   irLogin(): void {

@@ -209,17 +209,15 @@ export class CrearOferta implements OnInit {
         console.error('ERROR CARGANDO CATALOGOS:', error);
 
         const status = error.status;
-        const url = error.url || 'URL no disponible';
-
         if (status === 0) {
           this.mensajeError =
-            'No se pudo conectar con el servidor. Verifica que el backend esté encendido y que el puerto coincida con environment.apiUrl.';
+            'No se pudo cargar la información necesaria. Verifica tu conexión e inténtalo nuevamente.';
         } else if (status === 401 || status === 403) {
           this.mensajeError =
-            'No estás autorizado para cargar los catálogos. Revisa SecurityConfig.';
+            'Tu sesión no permite realizar esta acción. Vuelve a iniciar sesión e inténtalo nuevamente.';
         } else {
           this.mensajeError =
-            `No se pudieron cargar los catálogos. Error ${status} en ${url}`;
+            'No se pudo cargar la información necesaria. Intenta nuevamente en unos momentos.';
         }
 
         this.catalogosCargados = true;

@@ -13,17 +13,6 @@
           El plan Premium se renueva automáticamente cada mes mientras no canceles la suscripción.
         </p>
 
-        <p class="test-note" *ngIf="autenticado && culqiEnabled && culqiTestMode">
-          Modo prueba Culqi activo. Los pagos realizados aquí no cobran dinero real.
-        </p>
-
-        <p class="test-note live" *ngIf="autenticado && culqiEnabled && !culqiTestMode">
-          Culqi está en producción. Al confirmar Premium se realizará un cobro real y se activará la renovación mensual automática.
-        </p>
-
-        <p class="test-note" *ngIf="autenticado && !culqiEnabled">
-          El pago Premium todavía no está habilitado.
-        </p>
       </div>
 
       <div class="header-actions" *ngIf="!autenticado">
@@ -86,7 +75,7 @@
               Próximo cobro: {{ miSuscripcion.fechaProximoCobro }}
             </strong>
             <small>
-              Si cancelas, no realizará cobros automáticos futuros.
+              Si cancelas, no se realizarán cobros automáticos futuros.
             </small>
           </div>
 
@@ -96,7 +85,7 @@
               class="btn btn-danger"
               [disabled]="cancelandoSuscripcion || pagandoPremium || cambiandoPlan"
               (click)="cancelarSuscripcionPremium()">
-              {{ cancelandoSuscripcion ? 'Cancelando...' : 'Cancelar suscipción' }}
+              {{ cancelandoSuscripcion ? 'Cancelando...' : 'Cancelar renovación automática' }}
             </button>
           </div>
 
@@ -240,11 +229,11 @@
 
     <div class="payment-modal-header">
       <div>
-        <p class="eyebrow">Datos necesarios para Culqi</p>
+        <p class="eyebrow">Datos de facturación</p>
         <h2 id="payment-modal-title">Completa los datos de facturación</h2>
         <p>
-          Solo solicitamos la dirección y la ciudad porque Culqi las exige para registrar al cliente de la suscripción.
-          Tu nombre, apellido, correo y teléfono se toman de tu perfil de PeruTalent.
+          Completa la información necesaria para continuar con la suscripción.
+          Tu nombre, apellido, correo y teléfono se obtienen de tu perfil de PeruTalent.
         </p>
       </div>
 
@@ -258,7 +247,7 @@
       </button>
     </div>
 
-    <div class="payment-summary" [class.live]="!culqiTestMode">
+    <div class="payment-summary">
       <div>
         <span>Plan</span>
         <strong>{{ planFormularioPago.nombrePlan }}</strong>
@@ -266,10 +255,6 @@
       <div>
         <span>Cobro</span>
         <strong>{{ obtenerPrecio(planFormularioPago) }} al mes</strong>
-      </div>
-      <div>
-        <span>Ambiente</span>
-        <strong>{{ culqiTestMode ? 'Prueba' : 'Producción · dinero real' }}</strong>
       </div>
     </div>
 
@@ -287,7 +272,7 @@
             autocomplete="street-address"
             placeholder="Ejemplo: Av. Javier Prado 123"
             required>
-          <small>Dato requerido por Culqi para crear el cliente. Entre 5 y 100 caracteres.</small>
+          <small>Ingresa una dirección válida de entre 5 y 100 caracteres.</small>
         </label>
 
         <label class="payment-field payment-field-wide">
@@ -301,7 +286,7 @@
             autocomplete="address-level2"
             placeholder="Ejemplo: Lima"
             required>
-          <small>Dato requerido por Culqi. Entre 2 y 30 caracteres.</small>
+          <small>Ingresa una ciudad válida de entre 2 y 30 caracteres.</small>
         </label>
       </div>
 
@@ -318,8 +303,8 @@
       </label>
 
       <div class="payment-security-note">
-        En el siguiente paso, el Checkout oficial de Culqi solicitará únicamente el correo y los datos de la tarjeta
-        necesarios para tokenizarla: número, vencimiento y CVV. PeruTalent no recibe ni almacena esos datos.
+        En el siguiente paso ingresarás el correo y los datos de tu tarjeta de forma segura.
+        PeruTalent no recibe ni almacena el número completo de la tarjeta, la fecha de vencimiento ni el CVV.
       </div>
 
       <div class="payment-form-error" *ngIf="mensajeErrorFormulario">
@@ -339,7 +324,7 @@
           type="submit"
           class="btn btn-primary"
           [disabled]="pagandoPremium">
-          {{ pagandoPremium ? 'Procesando...' : 'Continuar con Culqi' }}
+          {{ pagandoPremium ? 'Procesando...' : 'Continuar al pago' }}
         </button>
       </div>
 
